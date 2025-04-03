@@ -1,6 +1,6 @@
 package com.Oracle.TaskService.service;
 
-import com.Oracle.TaskService.data.TaskSprintRegister;
+import com.Oracle.TaskService.data.TaskSprintRequest;
 import com.Oracle.TaskService.model.TaskSprint;
 import com.Oracle.TaskService.repository.TaskSprintRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +12,13 @@ public class TaskSprintService {
     @Autowired
     private TaskSprintRepository taskSprintRepository;
 
-    public Object addTaskToSprint(TaskSprintRegister taskSprintRegister){
-        TaskSprint taskSprint = new TaskSprint(taskSprintRegister);
+    public Object addTaskToSprint(TaskSprintRequest taskSprintRequest){
+        TaskSprint taskSprint = new TaskSprint(taskSprintRequest);
         return taskSprintRepository.save(taskSprint);
     }
 
-    public void removeTaskFromSprint(TaskSprintRegister taskSprintRegister){
-        TaskSprint taskSprint = new TaskSprint(taskSprintRegister);
+    public void removeTaskFromSprint(TaskSprintRequest taskSprintRequest){
+        TaskSprint taskSprint = new TaskSprint(taskSprintRequest);
         taskSprintRepository.delete(taskSprint);
     }
 

@@ -1,6 +1,6 @@
 package com.Oracle.TaskService.data;
 
-public record TaskSprintRegister(
+public record TaskSprintRequest(
         Long taskId,
         Long sprintId
 ) {

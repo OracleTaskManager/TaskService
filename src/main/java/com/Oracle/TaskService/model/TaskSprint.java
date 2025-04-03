@@ -1,6 +1,6 @@
 package com.Oracle.TaskService.model;
 
-import com.Oracle.TaskService.data.TaskSprintRegister;
+import com.Oracle.TaskService.data.TaskSprintRequest;
 import jakarta.persistence.*;
 
 @Entity
@@ -12,8 +12,8 @@ public class TaskSprint {
 
     public TaskSprint() {}
 
-    public TaskSprint(TaskSprintRegister taskSprintRegister) {
-        this.id = new TaskSprintId(taskSprintRegister.taskId(), taskSprintRegister.sprintId());
+    public TaskSprint(TaskSprintRequest taskSprintRequest) {
+        this.id = new TaskSprintId(taskSprintRequest.taskId(), taskSprintRequest.sprintId());
     }
 
     public TaskSprintId getId() {
