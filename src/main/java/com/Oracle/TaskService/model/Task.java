@@ -34,13 +34,13 @@ public class Task {
     public Task(TaskRegister taskRegister){
         this.title = taskRegister.title();
         this.description = taskRegister.description();
-        this.epic_id = taskRegister.epic_id();
+        this.epic_id = taskRegister.epicId();
         this.priority = taskRegister.priority().toString();
         this.status = "ToDo";
         this.type = taskRegister.type().toString();
-        this.estimated_deadline = taskRegister.estimated_deadline();
-        this.real_deadline = taskRegister.real_deadline();
-        this.user_points = taskRegister.user_points();
+        this.estimated_deadline = taskRegister.estimatedDeadline();
+        this.real_deadline = taskRegister.realDeadline();
+        this.user_points = taskRegister.userPoints();
     }
 
 
