@@ -6,6 +6,7 @@ import com.Oracle.TaskService.data.SprintUpdate;
 import com.Oracle.TaskService.data.enums.SprintStatus;
 import com.Oracle.TaskService.model.Sprint;
 import com.Oracle.TaskService.service.SprintService;
+import com.Oracle.TaskService.service.TaskSprintService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,9 @@ public class SprintController {
 
     @Autowired
     private SprintService sprintService;
+
+    @Autowired
+    private TaskSprintService taskSprintService;
 
     @PostMapping("/")
     @PreAuthorize("hasRole('Manager')")
@@ -144,6 +148,9 @@ public class SprintController {
             if(!isPlanned){
                 return ResponseEntity.status(400).body("Can only delete planned sprints");
             }
+
+            taskSprintService.removeTasksFromSprint(sprintId);
+
             sprintService.deleteSprint(sprintId);
             return ResponseEntity.ok().build();
         }catch(Exception e){
