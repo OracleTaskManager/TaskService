@@ -1,6 +1,7 @@
 package com.Oracle.TaskService.service;
 
 import com.Oracle.TaskService.data.TaskRegister;
+import com.Oracle.TaskService.data.TaskUpdateStatus;
 import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,16 +25,16 @@ public class TaskService {
     public List<Task> findAll() {
         return taskRepository.findAll();
     }
-    public Optional<Task> findTaskById(Long id){
-        return Optional.ofNullable(taskRepository.findById(id).orElse(null));
+    public Optional<Task> findTaskById(Long task_id){
+        return Optional.ofNullable(taskRepository.findById(task_id).orElse(null));
     }
 
     public Optional<Task> findTaskByEpicId(Long epicId){
         return taskRepository.findById(epicId);
     }
 
-    public List<Task> findByUserPoints(int userPoints){
-        return taskRepository.findByUserPoints(userPoints);
+    public List<Task> findByUserPoints(int user_points){
+        return taskRepository.findByUserPoints(user_points);
     }
     public List<Task> findByPriority(String priority){
         return taskRepository.findByPriority(priority);
@@ -47,6 +48,12 @@ public class TaskService {
 
     public List<Task> findByTitle(String title){
         return taskRepository.findByTitle(title);
+    }
+
+    public Task updateTaskStatus(TaskUpdateStatus taskUpdateStatus){
+        Task task = new Task();
+        task.setStatus(taskUpdateStatus.status().toString());
+        return taskRepository.save(task);
     }
 
     //delete

@@ -2,12 +2,11 @@ package com.Oracle.TaskService.controller;
 
 import com.Oracle.TaskService.data.TaskAssignmentRequest;
 import com.Oracle.TaskService.service.TaskAssignmentService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/taskassignments")
@@ -18,7 +17,7 @@ public class TaskAssignmentController {
 
     @PostMapping("/add")
     @PreAuthorize("hasRole('Manager')")
-    public void addTaskAssignment(TaskAssignmentRequest taskAssignmentRequest){
+    public void addTaskAssignment(@RequestBody @Valid TaskAssignmentRequest taskAssignmentRequest){
         try{
             boolean isAssigned = taskAssignmentService.isTaskAssigned(taskAssignmentRequest.taskId(), taskAssignmentRequest.userId());
             if(isAssigned){
@@ -33,7 +32,7 @@ public class TaskAssignmentController {
 
     @DeleteMapping("/remove")
     @PreAuthorize("hasRole('Manager')")
-    public void removeTaskAssignment(TaskAssignmentRequest taskAssignmentRequest){
+    public void removeTaskAssignment(@RequestBody @Valid TaskAssignmentRequest taskAssignmentRequest){
         try{
             boolean isAssigned = taskAssignmentService.isTaskAssigned(taskAssignmentRequest.taskId(), taskAssignmentRequest.userId());
             if(!isAssigned){

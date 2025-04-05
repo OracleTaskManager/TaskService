@@ -15,12 +15,18 @@ public class TaskDependency {
     @Column(name="task_dependency_id")
     private Long taskDependecyId;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name="task_id")
+/*
+    @Column(name="task_id")
+*/
     private Task taskId;
 
-    @OneToOne
-    @JoinColumn(name="task_id")
+    @ManyToOne
+    @JoinColumn(name="blocked_by_task_id")
+/*
+    @Column(name="blocked_by_task_id")
+*/
     private Task blockedByTaskId; //VERIFY CORRECTNESS
 
     public Long getTaskDependecyId() {

@@ -10,13 +10,8 @@ import java.util.Date;
 @Table(name = "tasks")
 public class Task {
     @Id
-    @Column(
-            name = "task_id",
-            columnDefinition = "NUMBER",
-            insertable = false,
-            updatable = false
-    )
-    @org.hibernate.annotations.Generated(GenerationTime.INSERT)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // or GenerationType.SEQUENCE if you're using sequences
+    @Column(name = "task_id")
     private Long task_id;
 
     private String title;

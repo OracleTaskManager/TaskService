@@ -15,11 +15,6 @@ public class TokenService {
     @Value("${jwt.secret.oracle}")
     private String secret;
 
-    @PostConstruct
-    public void checkSecret() {
-        System.out.println("JWT Secret Loaded: " + secret);
-    }
-
     public Long getUserId(String token){
         if(token == null){
             throw new RuntimeException();
