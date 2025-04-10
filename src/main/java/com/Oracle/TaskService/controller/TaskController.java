@@ -3,9 +3,7 @@ package com.Oracle.TaskService.controller;
 import com.Oracle.TaskService.data.TaskRegister;
 import com.Oracle.TaskService.data.TaskResponse;
 import com.Oracle.TaskService.data.TaskUpdateStatus;
-import com.Oracle.TaskService.model.CustomUserDetails;
 import com.Oracle.TaskService.model.Task;
-import com.Oracle.TaskService.model.TaskAssignment;
 import com.Oracle.TaskService.service.TaskAssignmentService;
 import com.Oracle.TaskService.service.TaskService;
 import jakarta.validation.Valid;
@@ -15,10 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Objects;
 
 @RestController
 @RequestMapping("/tasks")
@@ -34,9 +29,8 @@ public class TaskController {
     @PreAuthorize("hasRole('Manager')")
     public ResponseEntity<?> createTask(@RequestBody @Valid TaskRegister taskRequest){
         Task task = taskService.createTask(taskRequest);
-        System.out.println("Task created: " + task);
         return ResponseEntity.ok(new TaskResponse(
-                task.getTask_id(),
+                task.getTaskId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getEpic_id(),
@@ -92,8 +86,9 @@ public class TaskController {
         Long userId;
 
         userId = (Long) principal;
-
-        Boolean isTaskAssigned = taskAssignmentService.isTaskAssigned(taskUpdateStatus.task_id(), userId);
+        System.out.println("User ID: " + userId);
+        System.out.println("Task ID: " + taskUpdateStatus.taskId());
+        Boolean isTaskAssigned = taskAssignmentService.isTaskAssigned(taskUpdateStatus.taskId(), userId);
 
         if (!isTaskAssigned) {
             return new ResponseEntity<>("Task is not assigned to the user", HttpStatus.FORBIDDEN);
@@ -106,7 +101,7 @@ public class TaskController {
         }
 
         return new ResponseEntity<>(new TaskResponse(
-                task.getTask_id(),
+                task.getTaskId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getEpic_id(),

@@ -11,6 +11,7 @@ import java.util.List;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
+    Task findByTaskId(Long taskId);
     List<Task> findByStatus(String status);
     List<Task> findByTitle(String title);
     List<Task> findByPriority(String priority);

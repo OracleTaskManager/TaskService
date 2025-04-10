@@ -21,7 +21,6 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    //get
     public List<Task> findAll() {
         return taskRepository.findAll();
     }
@@ -51,7 +50,7 @@ public class TaskService {
     }
 
     public Task updateTaskStatus(TaskUpdateStatus taskUpdateStatus){
-        Task task = new Task();
+        Task task = taskRepository.findByTaskId(taskUpdateStatus.taskId());
         task.setStatus(taskUpdateStatus.status().toString());
         return taskRepository.save(task);
     }

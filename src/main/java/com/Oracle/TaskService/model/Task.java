@@ -2,7 +2,6 @@ package com.Oracle.TaskService.model;
 
 import com.Oracle.TaskService.data.TaskRegister;
 import jakarta.persistence.*;
-import org.hibernate.annotations.GenerationTime;
 
 import java.util.Date;
 
@@ -12,7 +11,7 @@ public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // or GenerationType.SEQUENCE if you're using sequences
     @Column(name = "task_id")
-    private Long task_id;
+    private Long taskId;
 
     private String title;
     private String description;
@@ -39,12 +38,12 @@ public class Task {
     }
 
 
-    public Long getTask_id() {
-        return task_id;
+    public Long getTaskId() {
+        return taskId;
     }
 
-    public void setTask_id(Long task_id) {
-        this.task_id = task_id;
+    public void setTaskId(Long taskId) {
+        this.taskId = taskId;
     }
 
     public String getTitle() {
