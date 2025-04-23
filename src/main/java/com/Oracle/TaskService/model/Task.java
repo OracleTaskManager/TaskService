@@ -21,7 +21,12 @@ public class Task {
     private String type;
     private Date estimated_deadline;
     private Date real_deadline;
-    private int user_points;
+    @Column(name="estimated_hours")
+    private int estimatedHours;
+    @Column(name="real_hours")
+    private int realHours;
+    @Column(name="user_points")
+    private int userPoints;
 
     public Task() {}
 
@@ -34,7 +39,10 @@ public class Task {
         this.type = taskRegister.type().toString();
         this.estimated_deadline = taskRegister.estimatedDeadline();
         this.real_deadline = taskRegister.realDeadline();
-        this.user_points = taskRegister.userPoints();
+        this.userPoints = taskRegister.userPoints();
+        this.estimatedHours = taskRegister.estimatedHours();
+        this.realHours = taskRegister.realHours();
+
     }
 
 
@@ -111,10 +119,26 @@ public class Task {
     }
 
     public int getUser_points() {
-        return user_points;
+        return userPoints;
     }
 
     public void setUser_points(int user_points) {
-        this.user_points = user_points;
+        this.userPoints = userPoints;
+    }
+
+    public int getEstimated_hours() {
+        return estimatedHours;
+    }
+
+    public void setEstimated_hours(int estimatedHours) {
+        this.estimatedHours = estimatedHours;
+    }
+
+    public int getReal_hours() {
+        return realHours;
+    }
+
+    public void setReal_hours(int realHours) {
+        this.realHours = realHours;
     }
 }

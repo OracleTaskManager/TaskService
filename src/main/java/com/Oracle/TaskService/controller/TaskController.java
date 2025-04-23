@@ -39,7 +39,9 @@ public class TaskController {
                 task.getType(),
                 task.getEstimated_deadline(),
                 task.getReal_deadline(),
-                task.getUser_points()
+                task.getUser_points(),
+                task.getReal_hours(),
+                task.getEstimated_hours()
                 ));
     }
 
@@ -78,6 +80,14 @@ public class TaskController {
     public ResponseEntity<?> findByTitle(@PathVariable("title") String title) {
         return new ResponseEntity<>(taskService.findByTitle(title), HttpStatus.OK);
     }
+    @GetMapping("/realhours/{hours}")
+    public ResponseEntity<?> findByRealHours(@PathVariable("hours") Integer realHours) {
+        return new ResponseEntity<>(taskService.findByRealHours(realHours), HttpStatus.OK);
+    }
+    @GetMapping("/estimatedhours/{hours}")
+    public ResponseEntity<?> findByTitle(@PathVariable("hours") Integer estimatedHours) {
+        return new ResponseEntity<>(taskService.findByEstimatedHours(estimatedHours), HttpStatus.OK);
+    }
 
     @PostMapping("/change-status")
     public ResponseEntity<?> changeStatus(@RequestBody @Valid TaskUpdateStatus taskUpdateStatus){
@@ -110,7 +120,10 @@ public class TaskController {
                 task.getType(),
                 task.getEstimated_deadline(),
                 task.getReal_deadline(),
-                task.getUser_points()
+                task.getUser_points(),
+                task.getReal_hours(),
+                task.getEstimated_hours()
+
         ), HttpStatus.OK);
 
     }
@@ -124,5 +137,7 @@ public class TaskController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
+
 
 }

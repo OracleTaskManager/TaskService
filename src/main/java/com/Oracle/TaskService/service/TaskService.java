@@ -65,5 +65,13 @@ public class TaskService {
         }
     }
 
+    public List<Task> findByRealHours(Integer realHours){
+        return taskRepository.findByRealHours(realHours);
+    }
+
+    public List<Task> findByEstimatedHours(Integer estimatedHours){
+        return taskRepository.findByEstimatedHours(estimatedHours);
+    }
+
 
 }

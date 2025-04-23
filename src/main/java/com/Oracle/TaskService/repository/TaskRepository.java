@@ -16,8 +16,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByTitle(String title);
     List<Task> findByPriority(String priority);
     List<Task> findByType(String type);
-    @Query("SELECT t FROM Task t WHERE t.user_points = :userPoints")
+    @Query("SELECT t FROM Task t WHERE t.userPoints = :userPoints")
     List<Task> findByUserPoints(@Param("userPoints") int userPoints);
+    List<Task> findByRealHours(Integer realHours);
+    List<Task> findByEstimatedHours(Integer estimatedHours);
+
 
 
 }

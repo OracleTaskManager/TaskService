@@ -13,6 +13,8 @@ public record TaskRegister(
         Type type,
         Date estimatedDeadline,
         Date realDeadline,
-        int userPoints
+        int userPoints,
+        int estimatedHours,
+        int realHours
 ) {
 }
