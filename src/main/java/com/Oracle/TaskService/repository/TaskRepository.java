@@ -1,11 +1,14 @@
 package com.Oracle.TaskService.repository;
 
+import com.Oracle.TaskService.data.TaskKPIView;
 import com.Oracle.TaskService.model.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 
 @Repository
@@ -20,7 +23,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByUserPoints(@Param("userPoints") int userPoints);
     List<Task> findByRealHours(Integer realHours);
     List<Task> findByEstimatedHours(Integer estimatedHours);
-
+    List<TaskKPIView> findTasksCompletedBetween(Date startDate, Date endDate);
 
 
 }

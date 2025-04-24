@@ -43,6 +43,8 @@ public class Task {
         this.estimatedHours = taskRegister.estimatedHours();
         this.realHours = taskRegister.realHours();
 
+        //add completedAt
+
     }
 
 

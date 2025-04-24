@@ -2,6 +2,7 @@ package com.Oracle.TaskService.controller;
 
 import com.Oracle.TaskService.data.TaskRegister;
 import com.Oracle.TaskService.data.TaskResponse;
+import com.Oracle.TaskService.data.TaskKPIView;
 import com.Oracle.TaskService.data.TaskUpdateStatus;
 import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.service.TaskAssignmentService;
@@ -14,6 +15,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Date;
+import java.util.List;
 
 @RestController
 @RequestMapping("/tasks")
@@ -125,7 +129,14 @@ public class TaskController {
                 task.getEstimated_hours()
 
         ), HttpStatus.OK);
+    }
 
+    @GetMapping("/kpi-tasks")
+    public List<TaskKPIView> getKpiTasks(
+            @RequestParam Date from,
+            @RequestParam Date to
+    ) {
+        return taskService.findTasksCompletedBetween(from, to); // map internally to TaskKpiView
     }
 
     @PreAuthorize("hasRole('Manager')")

@@ -1,5 +1,6 @@
 package com.Oracle.TaskService.service;
 
+import com.Oracle.TaskService.data.TaskKPIView;
 import com.Oracle.TaskService.data.TaskRegister;
 import com.Oracle.TaskService.data.TaskUpdateStatus;
 import com.Oracle.TaskService.model.Task;
@@ -7,6 +8,8 @@ import com.Oracle.TaskService.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,5 +76,8 @@ public class TaskService {
         return taskRepository.findByEstimatedHours(estimatedHours);
     }
 
+    public List<TaskKPIView> findTasksCompletedBetween(Date startDate, Date endDate){
+        return taskRepository.findTasksCompletedBetween(startDate, endDate);
+    }
 
 }

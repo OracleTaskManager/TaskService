@@ -26,14 +26,14 @@ public class EpicService {
         return epicRepository.findAll();
     }
 
-    public Optional<Epic> getEpic(Long epic_id){
+    public Optional<Epic> getEpicById(Long epic_id){
         return epicRepository.findById(epic_id);
     }
 
 
     //delete epic
     public boolean deleteEpic(Long epic_id){
-        if (getEpic(epic_id).isPresent()){
+        if (getEpicById(epic_id).isPresent()){
             epicRepository.deleteById(epic_id);
             return true;
         }else{
