@@ -41,8 +41,8 @@ public class TaskController {
                 task.getPriority(),
                 task.getStatus(),
                 task.getType(),
-                task.getEstimated_deadline(),
-                task.getReal_deadline(),
+                task.getEstimatedDeadline(),
+                task.getRealDeadline(),
                 task.getUser_points(),
                 task.getRealHours(),
                 task.getEstimatedHours()
@@ -122,8 +122,8 @@ public class TaskController {
                 task.getPriority(),
                 task.getStatus(),
                 task.getType(),
-                task.getEstimated_deadline(),
-                task.getReal_deadline(),
+                task.getEstimatedDeadline(),
+                task.getRealDeadline(),
                 task.getUser_points(),
                 task.getRealHours(),
                 task.getEstimatedHours()

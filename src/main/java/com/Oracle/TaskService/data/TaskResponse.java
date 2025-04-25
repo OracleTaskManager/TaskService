@@ -12,9 +12,9 @@ public record TaskResponse(
         String type,
         Date estimated_deadline,
         Date real_deadline,
-        int user_points,
-        int estimatedHours,
-        int realHours
-) {
+        Integer realHours,
+        Integer estimatedHours,
+        Integer user_points
+        ) {
 
 }

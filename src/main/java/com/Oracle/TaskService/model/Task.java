@@ -24,11 +24,11 @@ public class Task {
     @Column(name="real_deadline")
     private Date realDeadline;
     @Column(name="estimated_hours")
-    private int estimatedHours;
+    private Integer estimatedHours;
     @Column(name="real_hours")
-    private int realHours;
+    private Integer realHours;
     @Column(name="user_points")
-    private int userPoints;
+    private Integer userPoints;
 
     public Task() {}
 
@@ -106,7 +106,7 @@ public class Task {
         this.type = type;
     }
 
-    public Date getEstimated_deadline() {
+    public Date getEstimatedDeadline() {
         return estimatedDeadline;
     }
 
@@ -114,7 +114,7 @@ public class Task {
         this.estimatedDeadline = estimatedDeadline;
     }
 
-    public Date getReal_deadline() {
+    public Date getRealDeadline() {
         return realDeadline;
     }
 
@@ -122,27 +122,27 @@ public class Task {
         this.realDeadline = realDeadline;
     }
 
-    public int getUser_points() {
+    public Integer getUser_points() {
         return userPoints;
     }
 
-    public void setUser_points(int user_points) {
+    public void setUser_points(Integer user_points) {
         this.userPoints = userPoints;
     }
 
-    public int getEstimatedHours() {
+    public Integer getEstimatedHours() {
         return estimatedHours;
     }
 
-    public void setEstimatedHours(int estimatedHours) {
+    public void setEstimatedHours(Integer estimatedHours) {
         this.estimatedHours = estimatedHours;
     }
 
-    public int getRealHours() {
+    public Integer getRealHours() {
         return realHours;
     }
 
-    public void setRealHours(int realHours) {
+    public void setRealHours(Integer realHours) {
         this.realHours = realHours;
     }
 }
