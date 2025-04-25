@@ -4,6 +4,8 @@ import com.Oracle.TaskService.data.TaskKPIView;
 import com.Oracle.TaskService.data.TaskRegister;
 import com.Oracle.TaskService.data.TaskUpdateStatus;
 import com.Oracle.TaskService.model.Task;
+import com.Oracle.TaskService.model.TaskAssignment;
+import com.Oracle.TaskService.repository.TaskAssignmentRepository;
 import com.Oracle.TaskService.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,9 @@ public class TaskService {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private TaskAssignmentRepository taskAssignmentRepository;
 
     public Task createTask(TaskRegister taskRegister){
         Task task = new Task(taskRegister);
@@ -56,6 +61,18 @@ public class TaskService {
         Task task = taskRepository.findByTaskId(taskUpdateStatus.taskId());
         task.setStatus(taskUpdateStatus.status().toString());
         return taskRepository.save(task);
+    }
+
+    public List<Task> findTasksByUser(Long userId){
+        List<TaskAssignment> taskAssignments = taskAssignmentRepository.findByUserId(userId);
+        System.out.println("Tasks assigned to user" + taskAssignments);
+        List<Long> taskIds = taskAssignments.stream()
+                .map(assignment -> assignment.getTask_id())
+                .toList();
+        System.out.println("Toda la mierda" + taskIds);
+        List<Task> tasks = taskRepository.findAllById(taskIds);
+
+        return tasks;
     }
 
     //delete

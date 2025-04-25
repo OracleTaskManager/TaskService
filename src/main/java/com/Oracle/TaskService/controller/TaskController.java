@@ -5,6 +5,7 @@ import com.Oracle.TaskService.data.TaskResponse;
 import com.Oracle.TaskService.data.TaskKPIView;
 import com.Oracle.TaskService.data.TaskUpdateStatus;
 import com.Oracle.TaskService.model.Task;
+import com.Oracle.TaskService.repository.TaskRepository;
 import com.Oracle.TaskService.service.TaskAssignmentService;
 import com.Oracle.TaskService.service.TaskService;
 import jakarta.validation.Valid;
@@ -47,6 +48,38 @@ public class TaskController {
                 task.getRealHours(),
                 task.getEstimatedHours()
                 ));
+    }
+
+    @GetMapping("/my-tasks")
+    public ResponseEntity<?> getMyTasks() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Object principal = authentication.getPrincipal();
+        Long userId;
+        userId = (Long) principal;
+        System.out.println("User ID: " + userId);
+
+        List<Task> tasks = taskService.findTasksByUser(userId);
+        if (tasks.isEmpty()) {
+            return new ResponseEntity<>("No tasks found for the user", HttpStatus.NOT_FOUND);
+        }
+        List<TaskResponse> taskResponses = tasks.stream()
+                .map(task -> new TaskResponse(
+                        task.getTaskId(),
+                        task.getTitle(),
+                        task.getDescription(),
+                        task.getEpic_id(),
+                        task.getPriority(),
+                        task.getStatus(),
+                        task.getType(),
+                        task.getEstimatedDeadline(),
+                        task.getRealDeadline(),
+                        task.getUser_points(),
+                        task.getRealHours(),
+                        task.getEstimatedHours()
+                ))
+                .toList();
+
+        return new ResponseEntity<>(taskResponses, HttpStatus.OK);
     }
 
     @PreAuthorize("hasRole('Manager')")
