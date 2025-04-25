@@ -38,7 +38,7 @@ public class TaskKPIView {
         return realDeadline;
     }
 
-    public void setCompletedAt(Date realDeadline) {
+    public void setRealDeadline(Date realDeadline) {
         this.realDeadline = realDeadline;
     }
 

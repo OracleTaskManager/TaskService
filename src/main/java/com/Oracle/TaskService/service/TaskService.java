@@ -76,8 +76,8 @@ public class TaskService {
         return taskRepository.findByEstimatedHours(estimatedHours);
     }
 
-    public List<TaskKPIView> findTasksCompletedBetween(Date startDate, Date endDate){
-        return taskRepository.findTasksCompletedBetween(startDate, endDate);
+    public List<TaskKPIView> findByStatusAndRealDeadlineBetween(String status, Date startDate, Date endDate){
+        return taskRepository.findByStatusAndRealDeadlineBetween(status, startDate, endDate);
     }
 
 }

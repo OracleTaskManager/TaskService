@@ -44,8 +44,8 @@ public class TaskController {
                 task.getEstimated_deadline(),
                 task.getReal_deadline(),
                 task.getUser_points(),
-                task.getReal_hours(),
-                task.getEstimated_hours()
+                task.getRealHours(),
+                task.getEstimatedHours()
                 ));
     }
 
@@ -125,18 +125,19 @@ public class TaskController {
                 task.getEstimated_deadline(),
                 task.getReal_deadline(),
                 task.getUser_points(),
-                task.getReal_hours(),
-                task.getEstimated_hours()
+                task.getRealHours(),
+                task.getEstimatedHours()
 
         ), HttpStatus.OK);
     }
 
     @GetMapping("/kpi-tasks")
     public List<TaskKPIView> getKpiTasks(
+            @RequestParam String status,
             @RequestParam Date from,
             @RequestParam Date to
     ) {
-        return taskService.findTasksCompletedBetween(from, to); // map internally to TaskKpiView
+        return taskService.findByStatusAndRealDeadlineBetween(status, from, to); // map internally to TaskKpiView
     }
 
     @PreAuthorize("hasRole('Manager')")

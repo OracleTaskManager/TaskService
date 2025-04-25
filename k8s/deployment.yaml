@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-service
+  labels:
+    app: task-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: task-service
+  template:
+    metadata:
+      labels:
+        app: task-service
+    spec:
+      containers:
+        - name: task-service
+          image: mx-queretaro-1.ocir.io/axfvmmw9g9lu/taskmanager/task-service:v2
+          ports:
+            - containerPort: 8081
+          imagePullPolicy: Always

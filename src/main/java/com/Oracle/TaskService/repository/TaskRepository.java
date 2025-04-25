@@ -23,7 +23,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByUserPoints(@Param("userPoints") int userPoints);
     List<Task> findByRealHours(Integer realHours);
     List<Task> findByEstimatedHours(Integer estimatedHours);
-    List<TaskKPIView> findTasksCompletedBetween(Date startDate, Date endDate);
+    List<TaskKPIView> findByStatusAndRealDeadlineBetween(String status, Date startDate, Date endDate);
 
 
 }

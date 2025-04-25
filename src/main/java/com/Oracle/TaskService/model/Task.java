@@ -19,8 +19,10 @@ public class Task {
     private String priority;
     private String status;
     private String type;
-    private Date estimated_deadline;
-    private Date real_deadline;
+    @Column(name="estimated_deadline")
+    private Date estimatedDeadline;
+    @Column(name="real_deadline")
+    private Date realDeadline;
     @Column(name="estimated_hours")
     private int estimatedHours;
     @Column(name="real_hours")
@@ -37,8 +39,8 @@ public class Task {
         this.priority = taskRegister.priority().toString();
         this.status = "ToDo";
         this.type = taskRegister.type().toString();
-        this.estimated_deadline = taskRegister.estimatedDeadline();
-        this.real_deadline = taskRegister.realDeadline();
+        this.estimatedDeadline = taskRegister.estimatedDeadline();
+        this.realDeadline = taskRegister.realDeadline();
         this.userPoints = taskRegister.userPoints();
         this.estimatedHours = taskRegister.estimatedHours();
         this.realHours = taskRegister.realHours();
@@ -105,19 +107,19 @@ public class Task {
     }
 
     public Date getEstimated_deadline() {
-        return estimated_deadline;
+        return estimatedDeadline;
     }
 
-    public void setEstimated_deadline(Date estimated_deadline) {
-        this.estimated_deadline = estimated_deadline;
+    public void setEstimatedDeadline(Date estimatedDeadline) {
+        this.estimatedDeadline = estimatedDeadline;
     }
 
     public Date getReal_deadline() {
-        return real_deadline;
+        return realDeadline;
     }
 
-    public void setReal_deadline(Date real_deadline) {
-        this.real_deadline = real_deadline;
+    public void setRealDeadline(Date realDeadline) {
+        this.realDeadline = realDeadline;
     }
 
     public int getUser_points() {
@@ -128,19 +130,19 @@ public class Task {
         this.userPoints = userPoints;
     }
 
-    public int getEstimated_hours() {
+    public int getEstimatedHours() {
         return estimatedHours;
     }
 
-    public void setEstimated_hours(int estimatedHours) {
+    public void setEstimatedHours(int estimatedHours) {
         this.estimatedHours = estimatedHours;
     }
 
-    public int getReal_hours() {
+    public int getRealHours() {
         return realHours;
     }
 
-    public void setReal_hours(int realHours) {
+    public void setRealHours(int realHours) {
         this.realHours = realHours;
     }
 }

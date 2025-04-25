@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class TokenService {
 
-    @Value("${jwt.secret.oracle}")
+    @Value("${JWT_SECRET_ORACLE}")
     private String secret;
 
     public Long getUserId(String token){

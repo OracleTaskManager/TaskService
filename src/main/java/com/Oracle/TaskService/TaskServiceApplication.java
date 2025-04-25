@@ -17,8 +17,8 @@ public class TaskServiceApplication {
 		if (jwtSecret == null) {
 			System.err.println("⚠️ JWT_SECRET_ORACLE not found in .env file!");
 		} else {
-			System.setProperty("JWT_SECRET_ORACLE", jwtSecret);
-			System.setProperty("DB_PASSWORD", dbPass);
+			System.setProperty("JWT_SECRET_ORACLE", dotenv.get("JWT_SECRET_ORACLE"));
+			System.setProperty("DB_PASSWORD", dotenv.get("DB_PASSWORD"));
 		}
 		SpringApplication.run(TaskServiceApplication.class, args);
 	}
