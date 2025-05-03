@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class TaskServiceApplication {
 
 	public static void main(String[] args) {
+		System.out.println("TaskServiceApplication Running");
 		Dotenv dotenv = Dotenv.configure()
 				.ignoreIfMissing() // Optional: avoids crash if .env is missing
 				.load();

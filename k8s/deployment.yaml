@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: task-service
-          image: mx-queretaro-1.ocir.io/axfvmmw9g9lu/taskmanager/task-service:v2
+          image: mx-queretaro-1.ocir.io/axfvmmw9g9lu/taskmanager/task-service:v1
           ports:
             - containerPort: 8081
           imagePullPolicy: Always
