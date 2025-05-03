@@ -2,8 +2,4 @@ package com.Oracle.TaskService.data;
 
 import com.Oracle.TaskService.data.enums.TaskStatus;
 
-public record TaskUpdateStatus(
-        Long taskId,
-        TaskStatus status
-) {
-}
+public record TaskUpdateStatus(Long taskId, TaskStatus status) {}

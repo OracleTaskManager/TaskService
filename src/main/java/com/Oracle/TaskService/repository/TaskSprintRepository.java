@@ -11,12 +11,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TaskSprintRepository extends JpaRepository<TaskSprint, TaskSprintId> {
 
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM TaskSprint ts WHERE ts.id.sprint_id = ?1")
-    void deleteAllBySprintId(Long sprint_id);
+  @Modifying
+  @Transactional
+  @Query("DELETE FROM TaskSprint ts WHERE ts.id.sprint_id = ?1")
+  void deleteAllBySprintId(Long sprint_id);
 
-    @Query("SELECT CASE WHEN COUNT(ts) > 0 THEN TRUE ELSE FALSE END FROM TaskSprint ts WHERE ts.id.task_id = ?1 AND ts.id.sprint_id = ?2")
-    boolean existsByTaskIdAndSprintId(Long task_id, Long sprint_id);
-
+  @Query(
+      "SELECT CASE WHEN COUNT(ts) > 0 THEN TRUE ELSE FALSE END FROM TaskSprint ts WHERE ts.id.task_id = ?1 AND ts.id.sprint_id = ?2")
+  boolean existsByTaskIdAndSprintId(Long task_id, Long sprint_id);
 }

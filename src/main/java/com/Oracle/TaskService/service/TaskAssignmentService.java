@@ -9,21 +9,19 @@ import org.springframework.stereotype.Service;
 @Service
 public class TaskAssignmentService {
 
-    @Autowired
-    private TaskAssignmentRepository taskAssignmentRepository;
+  @Autowired private TaskAssignmentRepository taskAssignmentRepository;
 
-    public void addTaskAssignment(TaskAssignmentRequest taskAssignmentRequest) {
-        TaskAssignment taskAssignment = new TaskAssignment(taskAssignmentRequest);
-        taskAssignmentRepository.save(taskAssignment);
-    }
+  public void addTaskAssignment(TaskAssignmentRequest taskAssignmentRequest) {
+    TaskAssignment taskAssignment = new TaskAssignment(taskAssignmentRequest);
+    taskAssignmentRepository.save(taskAssignment);
+  }
 
-    public void removeTaskAssignment(TaskAssignmentRequest taskAssignmentRequest) {
-        TaskAssignment taskAssignment = new TaskAssignment(taskAssignmentRequest);
-        taskAssignmentRepository.delete(taskAssignment);
-    }
+  public void removeTaskAssignment(TaskAssignmentRequest taskAssignmentRequest) {
+    TaskAssignment taskAssignment = new TaskAssignment(taskAssignmentRequest);
+    taskAssignmentRepository.delete(taskAssignment);
+  }
 
-    public boolean isTaskAssigned(Long taskId, Long userId) {
-        return taskAssignmentRepository.existsByTaskIdAndUserId(taskId,userId);
-    }
-
+  public boolean isTaskAssigned(Long taskId, Long userId) {
+    return taskAssignmentRepository.existsByTaskIdAndUserId(taskId, userId);
+  }
 }
