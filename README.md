@@ -27,50 +27,32 @@ A cloud-native task management platform built with Java Spring Boot, Oracle Auto
 
 # ⚙️ Microservices Overview
 ## Microservice	Description
-AuthService |	Manages users, teams, and authentication
-TaskService	| Core logic for task CRUD operations
-KPIService	| Aggregates task data and computes KPIs
-TelegramBotService	| Sends real-time task updates to Telegram chats
+- AuthService |	Manages users, teams, and authentication
+- TaskService	| Core logic for task CRUD operations
+- KPIService	| Aggregates task data and computes KPIs
+- TelegramBotService	| Sends real-time task updates to Telegram chats
 
 
 # 📦 How to Run
 ### Clone the repository:
 
 
-git clone https://github.com/y/oracle-task-manager.git
-cd oracle-task-manager
-Set environment variables (.env or directly in your deployment settings):
+`git clone [https://github.com/y/oracle-task-manager.git](https://github.com/OracleTaskManager/TaskService.git)`
+`cd oracle-task-manager`
 
-DB_URL
+### Set environment variables (.env or directly in your deployment settings):
 
-DB_USER
+- DB_URL
 
-DB_PASSWORD
+- DB_USER
 
-JWT_SECRET
+- DB_PASSWORD
 
-TELEGRAM_BOT_TOKEN
+- JWT_SECRET
 
-Build with Maven:
+- TELEGRAM_BOT_TOKEN
 
-bash
-Copy
-Edit
-mvn clean install
-Deploy to OCI Kubernetes:
+# Build with Maven:
+`mvn clean install`
 
-Apply deployment and service YAMLs via kubectl
-
-Use Ingress for external access
-
-Configure OKE node pools and secrets as needed
-
-📊 KPI Dashboard (Optional)
-If integrated, the KPI microservice can generate:
-
-Task completion rates
-
-Team efficiency stats
-
-Task duration and blockers frequency
 
