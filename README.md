@@ -38,7 +38,7 @@ A cloud-native task management platform built with Java Spring Boot, Oracle Auto
 
 
 - `git clone [https://github.com/y/oracle-task-manager.git](https://github.com/OracleTaskManager/TaskService.git)`
-- `cd oracle-task-manager`
+- `cd TaskService`
 
 ### Set environment variables (.env or directly in your deployment settings):
 
