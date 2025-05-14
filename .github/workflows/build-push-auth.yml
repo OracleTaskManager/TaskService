@@ -13,7 +13,7 @@ jobs:
       NAMESPACE: axfvmmw9g9lu
       REPOSITORY: taskmanager
       IMAGE_NAME: task-service
-      VERSION: 3 #Cambiar siempre que se haga un push
+      VERSION: 4 #Cambiar siempre que se haga un push
 
     steps:
       - name: Checkout code
@@ -63,51 +63,65 @@ jobs:
         run: |
           mkdir -p build
           
-          # Verificar contenido del directorio target
           echo "Contenido del directorio target:"
           ls -la target/
           
-          # Comprobamos si el JAR existe
-          if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
-            echo "ERROR: El archivo JAR no existe en target/"
-            exit 1
-          fi
-          
+          echo "Copiando JAR a build/"
           cp target/TaskService-0.0.1-SNAPSHOT.jar build/
-          # Copiamos el wallet
+          
+          echo "Verificando archivo copiado:"
+          ls -la build/
+          file build/TaskService-0.0.1-SNAPSHOT.jar
+          
+          echo "Creando directorio para wallet"
           mkdir -p build/wallet
           cp -r wallet/* build/wallet/
           
-          # Crear un Dockerfile temporal que podamos usar en el contexto del repositorio
+          echo "Contenido de build/wallet:"
+          ls -la build/wallet/
+          
+          echo "Creando Dockerfile"
           cat > Dockerfile << EOF
           FROM eclipse-temurin:23-jre
-
-          # Directorio de trabajo en el contenedor
-          WORKDIR /TaskService
           
-          # Creamos un directorio vacío para el wallet que se montará después
+          # Mostrar versión de Java para verificar
+          RUN java -version
+          
+          # Establecer directorio de trabajo
+          WORKDIR /app
+          
+          # Crear directorios
           RUN mkdir -p /wallet
-
-          # Copiar el archivo JAR al contenedor
-          COPY build/TaskService-0.0.1-SNAPSHOT.jar TaskService.jar
           
-          # Copiar el wallet al contenedor
-          COPY build/wallet /wallet/
+          # Copiar JAR y wallet
+          COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
+          COPY build/wallet/ /wallet/
           
-          # Exponer el puerto 8080
-          EXPOSE 8081
-
-          # Establecer la variable de entorno TNS_ADMIN
+          # Verificar archivos copiados
+          RUN echo "===== Contenido de /app ====="
+          RUN ls -la /app/
+          RUN file /app/app.jar
+          
+          RUN echo "===== Contenido de /wallet ====="
+          RUN ls -la /wallet/
+          
+          # Establecer permisos explícitos
+          RUN chmod 755 /app/app.jar
+          
+          # Configurar variables de entorno
           ENV TNS_ADMIN=/wallet
           ENV ORACLE_HOME=/wallet
           ENV LD_LIBRARY_PATH=/wallet
           
-          # Mostrar el contenido del directorio /wallet
-          RUN ls -la /wallet
-
-          # Ejecutar la aplicación con la propiedad del sistema oracle.net.tns_admin
-          ENTRYPOINT ["java", "-jar", "TaskService.jar"]
+          # Puerto de la aplicación
+          EXPOSE 8081
+          
+          # Comando de inicio con logging detallado
+          ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
           EOF
+
+          echo "Contenido del Dockerfile:"
+          cat Dockerfile
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -121,11 +135,24 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
-          #Construir la imagen
-          docker build -t ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }} -f Dockerfile .
+          echo "Construyendo imagen Docker..."
+          docker build --no-cache -t ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }} -f Dockerfile .
           
-          # Subir solo el tag
-            docker push ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}
+          echo "Verificando la imagen construida..."
+          docker images
+          
+          echo "Probando la imagen localmente..."
+          docker run --name test-container -d ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}
+          
+          echo "Logs del contenedor de prueba:"
+          sleep 5
+          docker logs test-container || echo "Error al obtener logs"
+          
+          echo "Limpiando contenedor de prueba..."
+          docker rm -f test-container || echo "Error al eliminar contenedor"
+          
+          echo "Subiendo imagen a registry..."
+          docker push ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}
 
       - name: Print image details
         run: |
