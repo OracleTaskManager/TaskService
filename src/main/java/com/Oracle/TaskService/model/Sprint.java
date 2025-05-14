@@ -5,74 +5,69 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.GenerationTime;
-
 import java.util.Date;
+import org.hibernate.annotations.GenerationTime;
 
 @Entity
 @Table(name = "sprints")
 public class Sprint {
 
-    @Id
-    @Column(
-            name = "sprint_id",
-            columnDefinition = "NUMBER",
-            insertable = false,
-            updatable = false
-    )
-    @org.hibernate.annotations.Generated(GenerationTime.INSERT)
-    private Long sprint_id;
-    private String name;
-    private Date start_date;
-    private Date end_date;
-    private String status;
+  @Id
+  @Column(name = "sprint_id", columnDefinition = "NUMBER", insertable = false, updatable = false)
+  @org.hibernate.annotations.Generated(GenerationTime.INSERT)
+  private Long sprint_id;
 
-    public Sprint() {}
+  private String name;
+  private Date start_date;
+  private Date end_date;
+  private String status;
 
-    public Sprint(SprintRegister sprintRegister){
-        this.name = sprintRegister.name();
-        this.start_date = sprintRegister.startDate();
-        this.end_date = sprintRegister.endDate();
-        this.status = "Planned";
-    }
+  public Sprint() {}
 
-    public Long getSprint_id() {
-        return sprint_id;
-    }
+  public Sprint(SprintRegister sprintRegister) {
+    this.name = sprintRegister.name();
+    this.start_date = sprintRegister.startDate();
+    this.end_date = sprintRegister.endDate();
+    this.status = "Planned";
+  }
 
-    public void setSprint_id(Long sprint_id) {
-        this.sprint_id = sprint_id;
-    }
+  public Long getSprint_id() {
+    return sprint_id;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public void setSprint_id(Long sprint_id) {
+    this.sprint_id = sprint_id;
+  }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public Date getStart_date() {
-        return start_date;
-    }
+  public void setName(String name) {
+    this.name = name;
+  }
 
-    public void setStart_date(Date start_date) {
-        this.start_date = start_date;
-    }
+  public Date getStart_date() {
+    return start_date;
+  }
 
-    public Date getEnd_date() {
-        return end_date;
-    }
+  public void setStart_date(Date start_date) {
+    this.start_date = start_date;
+  }
 
-    public void setEnd_date(Date end_date) {
-        this.end_date = end_date;
-    }
+  public Date getEnd_date() {
+    return end_date;
+  }
 
-    public String getStatus() {
-        return status;
-    }
+  public void setEnd_date(Date end_date) {
+    this.end_date = end_date;
+  }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
+  }
 }
