@@ -62,60 +62,58 @@ jobs:
       - name: Prepare for Docker build
         run: |
           mkdir -p build
-          
+
           echo "Contenido del directorio target:"
           ls -la target/
-          
+
           echo "Copiando JAR a build/"
           cp target/TaskService-0.0.1-SNAPSHOT.jar build/
-          
+
           echo "Verificando archivo copiado:"
           ls -la build/
-          file build/TaskService-0.0.1-SNAPSHOT.jar
-          
+
           echo "Creando directorio para wallet"
           mkdir -p build/wallet
           cp -r wallet/* build/wallet/
-          
+
           echo "Contenido de build/wallet:"
           ls -la build/wallet/
-          
+
           echo "Creando Dockerfile"
           cat > Dockerfile << EOF
           FROM eclipse-temurin:23-jre
-          
+
           # Mostrar versión de Java para verificar
           RUN java -version
-          
+
           # Establecer directorio de trabajo
           WORKDIR /app
-          
+
           # Crear directorios
           RUN mkdir -p /wallet
-          
+
           # Copiar JAR y wallet
           COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
           COPY build/wallet/ /wallet/
-          
+
           # Verificar archivos copiados
           RUN echo "===== Contenido de /app ====="
           RUN ls -la /app/
-          RUN file /app/app.jar
-          
+
           RUN echo "===== Contenido de /wallet ====="
           RUN ls -la /wallet/
-          
+
           # Establecer permisos explícitos
           RUN chmod 755 /app/app.jar
-          
+
           # Configurar variables de entorno
           ENV TNS_ADMIN=/wallet
           ENV ORACLE_HOME=/wallet
           ENV LD_LIBRARY_PATH=/wallet
-          
+
           # Puerto de la aplicación
           EXPOSE 8081
-          
+
           # Comando de inicio con logging detallado
           ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
           EOF
@@ -144,8 +142,8 @@ jobs:
           echo "Probando la imagen localmente..."
           docker run --name test-container -d ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:v${{ env.VERSION }}
           
-          echo "Logs del contenedor de prueba:"
-          sleep 5
+          echo "Logs del contenedor de prueba (primeros 10 segundos):"
+          sleep 10
           docker logs test-container || echo "Error al obtener logs"
           
           echo "Limpiando contenedor de prueba..."
