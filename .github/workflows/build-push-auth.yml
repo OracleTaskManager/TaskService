@@ -62,6 +62,17 @@ jobs:
       - name: Prepare for Docker build
         run: |
           mkdir -p build
+          
+          # Verificar contenido del directorio target
+          echo "Contenido del directorio target:"
+          ls -la target/
+          
+          # Comprobamos si el JAR existe
+          if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
+            echo "ERROR: El archivo JAR no existe en target/"
+            exit 1
+          fi
+          
           cp target/TaskService-0.0.1-SNAPSHOT.jar build/
           # Copiamos el wallet
           mkdir -p build/wallet
