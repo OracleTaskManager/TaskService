@@ -50,37 +50,37 @@ public class TaskController {
                 ));
     }
 
-    @GetMapping("/my-tasks")
-    public ResponseEntity<?> getMyTasks() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Object principal = authentication.getPrincipal();
-        Long userId;
-        userId = (Long) principal;
-        System.out.println("User ID: " + userId);
+        @GetMapping("/my-tasks")
+        public ResponseEntity<?> getMyTasks() {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            Object principal = authentication.getPrincipal();
+            Long userId;
+            userId = (Long) principal;
+            System.out.println("User ID: " + userId);
 
-        List<Task> tasks = taskService.findTasksByUser(userId);
-        if (tasks.isEmpty()) {
-            return new ResponseEntity<>("No tasks found for the user", HttpStatus.NOT_FOUND);
+            List<Task> tasks = taskService.findTasksByUser(userId);
+            if (tasks.isEmpty()) {
+                return new ResponseEntity<>("No tasks found for the user", HttpStatus.NOT_FOUND);
+            }
+            List<TaskResponse> taskResponses = tasks.stream()
+                    .map(task -> new TaskResponse(
+                            task.getTaskId(),
+                            task.getTitle(),
+                            task.getDescription(),
+                            task.getEpic_id(),
+                            task.getPriority(),
+                            task.getStatus(),
+                            task.getType(),
+                            task.getEstimatedDeadline(),
+                            task.getRealDeadline(),
+                            task.getUser_points(),
+                            task.getRealHours(),
+                            task.getEstimatedHours()
+                    ))
+                    .toList();
+
+            return new ResponseEntity<>(taskResponses, HttpStatus.OK);
         }
-        List<TaskResponse> taskResponses = tasks.stream()
-                .map(task -> new TaskResponse(
-                        task.getTaskId(),
-                        task.getTitle(),
-                        task.getDescription(),
-                        task.getEpic_id(),
-                        task.getPriority(),
-                        task.getStatus(),
-                        task.getType(),
-                        task.getEstimatedDeadline(),
-                        task.getRealDeadline(),
-                        task.getUser_points(),
-                        task.getRealHours(),
-                        task.getEstimatedHours()
-                ))
-                .toList();
-
-        return new ResponseEntity<>(taskResponses, HttpStatus.OK);
-    }
 
     @PreAuthorize("hasRole('Manager')")
     @GetMapping("/all")
