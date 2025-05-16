@@ -11,12 +11,14 @@ import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/tasks")
@@ -175,10 +177,24 @@ public class TaskController {
   @PreAuthorize("hasRole('Manager')")
   @DeleteMapping("/")
   public ResponseEntity<?> deleteTask(@RequestParam("task_id") Long task_id) {
-    if (taskService.deleteTaskById(task_id)) {
-      return new ResponseEntity<>(HttpStatus.OK);
-    } else {
-      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    try{
+      String url = "http://140.84.189.81/api/files/attachments/" + task_id;
+      RestTemplate restTemplate = new RestTemplate();
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
+      if (!response.getStatusCode().is2xxSuccessful()) {
+          return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+      if (taskService.deleteTaskById(task_id)) {
+        return new ResponseEntity<>(HttpStatus.OK);
+      } else {
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+      }
+
+    } catch(Exception e){
+      System.out.println("Error during task deletion: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 }
