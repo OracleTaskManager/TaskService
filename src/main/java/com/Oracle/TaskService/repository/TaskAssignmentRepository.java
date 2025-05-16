@@ -16,4 +16,11 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
   @Query("SELECT t FROM TaskAssignment t WHERE t.id.user_id = :userId")
   List<TaskAssignment> findByUserId(Long userId);
+
+  @Query(value = "SELECT DISTINCT ta.user_id " +
+          "FROM admin.task_assignments ta " +
+          "JOIN admin.task_sprint ts ON ta.task_id = ts.task_id " +
+          "WHERE ts.sprint_id = :sprintId", nativeQuery = true)
+  List<Long> findDistinctUserIdsInSprint(Long sprintId);
+
 }

@@ -39,7 +39,7 @@ public class SprintController {
       Sprint sprint = sprintService.saveSprint(sprintRegister);
       SprintResponse sprintResponse =
           new SprintResponse(
-              sprint.getSprint_id(),
+              sprint.getSprintId(),
               sprint.getName(),
               sprint.getStart_date(),
               sprint.getEnd_date(),
@@ -146,7 +146,7 @@ public class SprintController {
       Sprint updatedSprint = sprintService.updateSprint(sprintUpdate);
       SprintResponse sprintResponse =
           new SprintResponse(
-              updatedSprint.getSprint_id(),
+              updatedSprint.getSprintId(),
               updatedSprint.getName(),
               updatedSprint.getStart_date(),
               updatedSprint.getEnd_date(),

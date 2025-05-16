@@ -15,7 +15,7 @@ public class Sprint {
   @Id
   @Column(name = "sprint_id", columnDefinition = "NUMBER", insertable = false, updatable = false)
   @org.hibernate.annotations.Generated(GenerationTime.INSERT)
-  private Long sprint_id;
+  private Long sprintId;
 
   private String name;
   private Date start_date;
@@ -31,12 +31,12 @@ public class Sprint {
     this.status = "Planned";
   }
 
-  public Long getSprint_id() {
-    return sprint_id;
+  public Long getSprintId() {
+    return sprintId;
   }
 
-  public void setSprint_id(Long sprint_id) {
-    this.sprint_id = sprint_id;
+  public void setSprintId(Long sprintId) {
+    this.sprintId = sprintId;
   }
 
   public String getName() {
