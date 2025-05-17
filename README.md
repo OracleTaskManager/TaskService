@@ -13,8 +13,8 @@ Este repositorio contiene el microservicio de gestión de tareas para el sistema
 
 #### 1. Clonar el repositorio
 
-```bash
-git clone https://github.com/tuOrganizacion/TaskService.git
+```bash[
+git clone https://github.com/OracleTaskManager/TaskService.git](https://github.com/OracleTaskManager/TaskService.git)
 cd TaskService
 ```
 
