@@ -1,9 +1,6 @@
 package com.Oracle.TaskService.controller;
 
-import com.Oracle.TaskService.data.TaskKPIView;
-import com.Oracle.TaskService.data.TaskRegister;
-import com.Oracle.TaskService.data.TaskResponse;
-import com.Oracle.TaskService.data.TaskUpdateStatus;
+import com.Oracle.TaskService.data.*;
 import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.service.TaskAssignmentService;
 import com.Oracle.TaskService.service.TaskService;
@@ -128,6 +125,7 @@ public class TaskController {
     return new ResponseEntity<>(taskService.findByEstimatedHours(estimatedHours), HttpStatus.OK);
   }
 
+  //implement in service
   @PostMapping("/change-status")
   public ResponseEntity<?> changeStatus(@RequestBody @Valid TaskUpdateStatus taskUpdateStatus) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -196,5 +194,33 @@ public class TaskController {
       System.out.println("Error during task deletion: " + e.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
+  }
+
+  @PreAuthorize("hasRole('Manager')")
+  @PutMapping("/update-task")
+  public ResponseEntity<?> updateTaskContent(@RequestBody @Valid TaskUpdateContent taskUpdateContent) {
+    Task task = taskService.updateTaskContent(taskUpdateContent);
+
+    if (task == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+              .body("Task not found");
+    }
+
+    TaskResponse response = new TaskResponse(
+            task.getTaskId(),
+            task.getTitle(),
+            task.getDescription(),
+            task.getEpic_id(),
+            task.getPriority(),
+            task.getStatus(),
+            task.getType(),
+            task.getEstimatedDeadline(),
+            task.getRealDeadline(),
+            task.getUser_points(),
+            task.getRealHours(),
+            task.getEstimatedHours()
+    );
+
+    return ResponseEntity.ok(response);
   }
 }

@@ -33,7 +33,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
   List<TaskKPIView> findByStatusAndRealDeadlineBetween(String status, Date startDate, Date endDate);
 
-  List<Task> findByTaskIdIn(List<Long> taskIds);
+  //List<Task> findByTaskIdIn(List<Long> taskIds);
 
   @Query(value = "SELECT t.task_id, t.title, t.status, t.real_hours, ts.sprint_id " +
           "FROM admin.tasks t " +
@@ -97,5 +97,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
           "JOIN admin.task_assignments ta ON ut.user_id = ta.user_id " +
           "JOIN admin.task_sprint ts ON ta.task_id = ts.task_id", nativeQuery = true)
   List<Long> findAllTeamIds();
+
 
 }

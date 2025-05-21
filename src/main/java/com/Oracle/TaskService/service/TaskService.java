@@ -2,6 +2,7 @@ package com.Oracle.TaskService.service;
 
 import com.Oracle.TaskService.data.TaskKPIView;
 import com.Oracle.TaskService.data.TaskRegister;
+import com.Oracle.TaskService.data.TaskUpdateContent;
 import com.Oracle.TaskService.data.TaskUpdateStatus;
 import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.model.TaskAssignment;
@@ -96,4 +97,42 @@ public class TaskService {
       String status, Date startDate, Date endDate) {
     return taskRepository.findByStatusAndRealDeadlineBetween(status, startDate, endDate);
   }
+
+  public Task updateTaskContent(TaskUpdateContent updateTask) {
+    Task task = taskRepository.findByTaskId(updateTask.id());
+
+    if (updateTask.title() != null) {
+      task.setTitle(updateTask.title());
+    }
+    if (updateTask.description() != null) {
+      task.setDescription(updateTask.description());
+    }
+    if (updateTask.epic_id() != null) {
+      task.setEpic_id(updateTask.epic_id());
+    }
+    if (updateTask.priority() != null) {
+      task.setPriority(updateTask.priority());
+    }
+    if (updateTask.status() != null) {
+      task.setStatus(updateTask.status());
+    }
+    if (updateTask.type() != null) {
+      task.setType(updateTask.type());
+    }
+    if (updateTask.estimated_deadline() != null) {
+      task.setEstimatedDeadline(updateTask.estimated_deadline());
+    }
+    if (updateTask.real_deadline() != null) {
+      task.setRealDeadline(updateTask.real_deadline());
+    }
+    if (updateTask.estimatedHours() != null) {
+      task.setEstimatedHours(updateTask.estimatedHours());
+    }
+    if (updateTask.realHours() != null) {
+      task.setRealHours(updateTask.realHours());
+    }
+
+    return taskRepository.save(task);
+  }
+
 }
