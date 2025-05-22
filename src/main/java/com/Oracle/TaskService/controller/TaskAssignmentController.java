@@ -1,11 +1,15 @@
 package com.Oracle.TaskService.controller;
 
 import com.Oracle.TaskService.data.TaskAssignmentRequest;
+import com.Oracle.TaskService.data.TaskAssignmentResponse;
 import com.Oracle.TaskService.service.TaskAssignmentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/taskassignments")
@@ -45,6 +49,17 @@ public class TaskAssignmentController {
       taskAssignmentService.removeTaskAssignment(taskAssignmentRequest);
     } catch (Exception e) {
       System.out.println("Error during task assignment deletion: " + e.getMessage());
+    }
+  }
+
+  @GetMapping("/")
+  @PreAuthorize("hasRole('Manager')")
+  public List<?> getAllTaskAssignments() {
+    try {
+      return taskAssignmentService.getAllTaskAssignments();
+    } catch (Exception e) {
+      System.out.println("Error during fetching task assignments: " + e.getMessage());
+      return null;
     }
   }
 }

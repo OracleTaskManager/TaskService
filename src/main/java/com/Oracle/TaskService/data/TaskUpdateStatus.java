@@ -2,4 +2,10 @@ package com.Oracle.TaskService.data;
 
 import com.Oracle.TaskService.data.enums.TaskStatus;
 
-public record TaskUpdateStatus(Long taskId, TaskStatus status) {}
+import java.util.Date;
+
+public record TaskUpdateStatus(
+        TaskStatus status,
+        Date realDeadline,
+        Integer realHours
+) {}

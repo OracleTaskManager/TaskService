@@ -58,18 +58,25 @@ public class TaskService {
     return taskRepository.findByTitle(title);
   }
 
-  public Task updateTaskStatus(TaskUpdateStatus taskUpdateStatus) {
-    Task task = taskRepository.findByTaskId(taskUpdateStatus.taskId());
-    task.setStatus(taskUpdateStatus.status().toString());
+  public Task updateTaskStatus(Long taskId,TaskUpdateStatus taskUpdateStatus) {
+    Task task = taskRepository.findByTaskId(taskId);
+    if (taskUpdateStatus.status() != null) {
+      task.setStatus(taskUpdateStatus.status().toString());
+    }
+    if (taskUpdateStatus.realHours() != null) {
+      task.setRealHours(taskUpdateStatus.realHours());
+    }
+    if (taskUpdateStatus.realDeadline() != null) {
+      task.setRealDeadline(taskUpdateStatus.realDeadline());
+    }
+
     return taskRepository.save(task);
   }
 
   public List<Task> findTasksByUser(Long userId) {
     List<TaskAssignment> taskAssignments = taskAssignmentRepository.findByUserId(userId);
-    System.out.println("Tasks assigned to user" + taskAssignments);
     List<Long> taskIds =
         taskAssignments.stream().map(assignment -> assignment.getTask_id()).toList();
-    System.out.println("Toda la mierda" + taskIds);
     List<Task> tasks = taskRepository.findAllById(taskIds);
 
     return tasks;
@@ -98,8 +105,8 @@ public class TaskService {
     return taskRepository.findByStatusAndRealDeadlineBetween(status, startDate, endDate);
   }
 
-  public Task updateTaskContent(TaskUpdateContent updateTask) {
-    Task task = taskRepository.findByTaskId(updateTask.id());
+  public Task updateTaskById(Long taskId,TaskUpdateContent updateTask) {
+    Task task = taskRepository.findByTaskId(taskId);
 
     if (updateTask.title() != null) {
       task.setTitle(updateTask.title());

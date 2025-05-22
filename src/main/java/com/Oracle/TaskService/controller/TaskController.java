@@ -51,7 +51,6 @@ public class TaskController {
     Object principal = authentication.getPrincipal();
     Long userId;
     userId = (Long) principal;
-    System.out.println("User ID: " + userId);
 
     List<Task> tasks = taskService.findTasksByUser(userId);
     if (tasks.isEmpty()) {
@@ -71,9 +70,9 @@ public class TaskController {
                         task.getType(),
                         task.getEstimatedDeadline(),
                         task.getRealDeadline(),
-                        task.getUser_points(),
                         task.getRealHours(),
-                        task.getEstimatedHours()))
+                        task.getEstimatedHours(),
+                        task.getUser_points()))
             .toList();
 
     return new ResponseEntity<>(taskResponses, HttpStatus.OK);
@@ -126,23 +125,22 @@ public class TaskController {
   }
 
   //implement in service
-  @PostMapping("/change-status")
-  public ResponseEntity<?> changeStatus(@RequestBody @Valid TaskUpdateStatus taskUpdateStatus) {
+  @PostMapping("/change-status/{task_id}")
+  public ResponseEntity<?> changeStatus(@RequestBody @Valid TaskUpdateStatus taskUpdateStatus, @PathVariable("task_id") Long task_id) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     Object principal = authentication.getPrincipal();
     Long userId;
 
     userId = (Long) principal;
     System.out.println("User ID: " + userId);
-    System.out.println("Task ID: " + taskUpdateStatus.taskId());
     Boolean isTaskAssigned =
-        taskAssignmentService.isTaskAssigned(taskUpdateStatus.taskId(), userId);
+        taskAssignmentService.isTaskAssigned(task_id, userId);
 
     if (!isTaskAssigned) {
       return new ResponseEntity<>("Task is not assigned to the user", HttpStatus.FORBIDDEN);
     }
 
-    Task task = taskService.updateTaskStatus(taskUpdateStatus);
+    Task task = taskService.updateTaskStatus(task_id, taskUpdateStatus);
 
     if (task == null) {
       return new ResponseEntity<>("Task not found", HttpStatus.NOT_FOUND);
@@ -159,9 +157,9 @@ public class TaskController {
             task.getType(),
             task.getEstimatedDeadline(),
             task.getRealDeadline(),
-            task.getUser_points(),
             task.getRealHours(),
-            task.getEstimatedHours()),
+            task.getEstimatedHours(),
+            task.getUser_points()),
         HttpStatus.OK);
   }
 
@@ -196,10 +194,49 @@ public class TaskController {
     }
   }
 
+  @PutMapping("/update-my-task/{task_id}")
   @PreAuthorize("hasRole('Manager')")
-  @PutMapping("/update-task")
-  public ResponseEntity<?> updateTaskContent(@RequestBody @Valid TaskUpdateContent taskUpdateContent) {
-    Task task = taskService.updateTaskContent(taskUpdateContent);
+  public ResponseEntity<?> updateTask(@RequestBody @Valid TaskUpdateContent taskUpdateContent, @PathVariable("task_id") Long task_id) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    Object principal = authentication.getPrincipal();
+    Long userId;
+    userId = (Long) principal;
+    System.out.println("User ID: " + userId);
+    Boolean isTaskAssigned = taskAssignmentService.isTaskAssigned(task_id, userId);
+
+    if (!isTaskAssigned) {
+      return new ResponseEntity<>("Task is not assigned to the user", HttpStatus.FORBIDDEN);
+    }
+
+    Task task = taskService.updateTaskById(task_id, taskUpdateContent);
+
+    if (task == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+              .body("Task not found");
+    }
+
+    TaskResponse response = new TaskResponse(
+            task.getTaskId(),
+            task.getTitle(),
+            task.getDescription(),
+            task.getEpic_id(),
+            task.getPriority(),
+            task.getStatus(),
+            task.getType(),
+            task.getEstimatedDeadline(),
+            task.getRealDeadline(),
+            task.getUser_points(),
+            task.getRealHours(),
+            task.getEstimatedHours()
+    );
+
+    return ResponseEntity.ok(response);
+  }
+
+  @PreAuthorize("hasRole('Manager')")
+  @PutMapping("/update-task/{task_id}")
+  public ResponseEntity<?> updateTaskContent(@RequestBody @Valid TaskUpdateContent taskUpdateContent, @PathVariable("task_id") Long task_id) {
+    Task task = taskService.updateTaskById(task_id, taskUpdateContent);
 
     if (task == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)

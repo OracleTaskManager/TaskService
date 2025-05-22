@@ -13,7 +13,7 @@ jobs:
       NAMESPACE: axfvmmw9g9lu
       REPOSITORY: taskmanager
       IMAGE_NAME: task-service
-      VERSION: 6 #Cambiar siempre que se haga un push
+      VERSION: 7 #Cambiar siempre que se haga un push
 
     steps:
       - name: Checkout code

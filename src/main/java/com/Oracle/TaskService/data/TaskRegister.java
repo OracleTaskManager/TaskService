@@ -14,4 +14,5 @@ public record TaskRegister(
     Date realDeadline,
     int userPoints,
     int estimatedHours,
-    int realHours) {}
+    int realHours
+) {}
