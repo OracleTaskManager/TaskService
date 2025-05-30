@@ -64,7 +64,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
           "FROM admin.tasks t " +
           "JOIN admin.task_sprint ts ON t.task_id = ts.task_id " +
           "JOIN admin.task_assignments ta ON t.task_id = ta.task_id " +
-          "WHERE ts.sprint_id = :sprintId AND ta.user_id = :userId AND t.status = 'Completed'", nativeQuery = true)
+          "WHERE ts.sprint_id = :sprintId AND ta.user_id = :userId AND t.status = 'Done'", nativeQuery = true)
   List<Map<String, Object>> findCompletedTasksBySprintIdAndUserId(
           @Param("sprintId") Long sprintId,
           @Param("userId") Long userId);
@@ -88,7 +88,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
           "FROM admin.tasks t " +
           "JOIN admin.task_sprint ts ON t.task_id = ts.task_id " +
           "JOIN admin.task_assignments ta ON t.task_id = ta.task_id " +
-          "WHERE ts.sprint_id = :sprintId AND ta.user_id = :userId AND t.status = 'Completed'", nativeQuery = true)
+          "WHERE ts.sprint_id = :sprintId AND ta.user_id = :userId AND t.status = 'Done'", nativeQuery = true)
   Integer countCompletedTasksBySprintIdAndUserId(
           @Param("sprintId") Long sprintId,
           @Param("userId") Long userId);
