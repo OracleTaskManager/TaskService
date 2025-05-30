@@ -46,7 +46,7 @@ steps:
         fi
       }
       
-      # Obtener todos los archivos del wallet
+      # Obtener solo archivos del wallet (SIN OCI keys para TaskService)
       echo "📁 Creating wallet files from secrets..."
       get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
       get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
@@ -96,8 +96,7 @@ steps:
       wget -q https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz
       
       if [ ! -f "jdk-23_linux-x64_bin.tar.gz" ]; then
-        echo "❌ Failed to download Java 23, trying alternative mirror..."
-        # Try alternative Java 23 source
+        echo "❌ Failed to download Java 23, trying alternative..."
         wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23%2B37/OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz
         if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz" ]; then
           tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz
@@ -169,7 +168,7 @@ steps:
     name: "Prepare Docker build"
     timeoutInSeconds: 120
     command: |
-      # Crear estructura de build
+      # Crear estructura de build (SOLO wallet, SIN oci-keys)
       mkdir -p build build/wallet
       
       echo "Copying JAR to build directory..."
@@ -178,20 +177,23 @@ steps:
       echo "Copying wallet..."
       cp -r wallet/* build/wallet/ 2>/dev/null || true
       
-      echo "Creating Dockerfile..."
+      echo "Creating Dockerfile (LIMPIO - solo wallet)..."
       cat > Dockerfile << 'EOF'
       FROM eclipse-temurin:23-jre
       
       WORKDIR /app
       
+      # Solo crear directorio wallet (NO oci-keys)
       RUN mkdir -p /wallet
       
+      # Copiar JAR y wallet (NO oci-keys)
       COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
       COPY build/wallet/ /wallet/
       
       RUN chmod 755 /app/app.jar
       RUN chmod 600 /wallet/* 2>/dev/null || true
       
+      # Variables de entorno SOLO para wallet
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
