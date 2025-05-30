@@ -113,7 +113,7 @@ steps:
       
       # NO TOCAR ojdbc.properties - crear uno optimizado que DESACTIVE JKS completamente
       echo "✅ Creating optimized ojdbc.properties (disable JKS completely)"
-      cat > wallet/ojdbc.properties << 'OJDBC_EOF'
+      cat > wallet/ojdbc.properties << 'EOF'
     # Connection property while using Oracle wallets - WALLET ONLY, NO JKS
       oracle.net.wallet_location=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=${TNS_ADMIN})))
       
@@ -123,13 +123,13 @@ steps:
       
       # Use WALLET authentication only
       oracle.net.authentication_services=(TCPS,NTS)
-      OJDBC_EOF
+      EOF
       echo "📄 Modified ojdbc.properties content:"
       cat wallet/ojdbc.properties
       
       # Crear sqlnet.ora optimizado para WALLET-ONLY (sin JKS)
       echo "✅ Creating optimized sqlnet.ora (wallet-only, no JKS references)"
-      cat > wallet/sqlnet.ora << 'SQLNET_EOF'
+      cat > wallet/sqlnet.ora << 'EOF'
       WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
       SSL_SERVER_DN_MATCH=no
       SSL_CLIENT_AUTHENTICATION=false
@@ -137,7 +137,7 @@ steps:
       SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
       # Disable any keystore references
       SQLNET.WALLET_OVERRIDE=TRUE
-      SQLNET_EOF
+      EOF
       echo "📄 Modified sqlnet.ora content:"
       cat wallet/sqlnet.ora
       
@@ -199,22 +199,22 @@ steps:
         if [ -f "wallet/sqlnet.ora" ]; then
           echo "🔧 Fixing sqlnet.ora to avoid corrupted keystores..."
           cat > wallet/sqlnet.ora << 'SQLNET_EOF'
-      WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
-      SSL_SERVER_DN_MATCH=no
-      SSL_CLIENT_AUTHENTICATION=false
-      SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
-      NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
-      SQLNET_EOF
-      echo "✅ sqlnet.ora updated to use wallet-only authentication"
-      cat wallet/sqlnet.ora
-      fi
-      
-      echo "✅ application.properties modified successfully"
-      echo "📄 New content:"
-      cat src/main/resources/application.properties
-      else
-      echo "⚠️ application.properties not found, skipping modification"
-      fi
+        WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
+        SSL_SERVER_DN_MATCH=no
+        SSL_CLIENT_AUTHENTICATION=false
+        SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
+        NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
+        SQLNET_EOF
+        echo "✅ sqlnet.ora updated to use wallet-only authentication"
+        cat wallet/sqlnet.ora
+        fi
+        
+        echo "✅ application.properties modified successfully"
+        echo "📄 New content:"
+        cat src/main/resources/application.properties
+        else
+        echo "⚠️ application.properties not found, skipping modification"
+        fi
 
   - type: Command
     name: "Install Java 23 and Build with Maven"
