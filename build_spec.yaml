@@ -46,7 +46,7 @@ steps:
         fi
       }
       
-      # Obtener todos los archivos del wallet (incluyendo JKS por compatibilidad)
+      # Obtener SOLO archivos esenciales del wallet (SIN JKS)
       get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
       get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
       get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
@@ -54,22 +54,24 @@ steps:
       get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
       get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
       get_secret "$WALLET_README_OCID" "wallet/README" || true
-      # Incluir JKS por compatibilidad
-      get_secret "$WALLET_KEYSTORE_JKS_OCID" "wallet/keystore.jks" || true
-      get_secret "$WALLET_TRUSTSTORE_JKS_OCID" "wallet/truststore.jks" || true
       
-      # Crear ojdbc.properties compatible (mantener configuración original)
-      echo "✅ Creating compatible ojdbc.properties"
+      echo "⚠️ EXPLICITLY SKIPPING keystore.jks and truststore.jks to avoid SSL errors"
+      
+      # Crear ojdbc.properties optimizado para WALLET-ONLY
+      echo "✅ Creating WALLET-ONLY ojdbc.properties"
       cat > wallet/ojdbc.properties << 'EOF'
-      # Connection property while using Oracle wallets
+      # Oracle Wallet connection - NO JKS FILES
       oracle.net.wallet_location=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=${TNS_ADMIN})))
       oracle.net.ssl_client_authentication=false
       oracle.net.ssl_server_dn_match=false
       oracle.net.authentication_services=(TCPS,NTS)
+      # Disable JKS lookups
+      oracle.net.ssl_keystore_type=NONE
+      oracle.net.ssl_truststore_type=NONE
       EOF
       
-      # Crear sqlnet.ora compatible
-      echo "✅ Creating compatible sqlnet.ora"
+      # Crear sqlnet.ora optimizado para WALLET-ONLY
+      echo "✅ Creating WALLET-ONLY sqlnet.ora"
       cat > wallet/sqlnet.ora << 'EOF'
       WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
       SSL_SERVER_DN_MATCH=no
@@ -77,13 +79,34 @@ steps:
       NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
       SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
       SQLNET.WALLET_OVERRIDE=TRUE
+      # Force wallet-only mode
+      SSL_CLIENT_AUTHENTICATION=FALSE
+      SQLNET.SSL_VERSION=1.2
       EOF
+      
+      # Verificar que NO existan archivos JKS
+      if [ -f "wallet/keystore.jks" ] || [ -f "wallet/truststore.jks" ]; then
+        echo "❌ Removing JKS files to prevent SSL errors"
+        rm -f wallet/keystore.jks wallet/truststore.jks
+      fi
       
       # Configurar permisos
       chmod 600 wallet/* 2>/dev/null || true
       
-      echo "📋 Wallet files created:"
+      echo "📋 Final wallet files (NO JKS):"
       ls -la wallet/
+      
+      # Verificar contenido de archivos críticos
+      echo "🔍 Verifying wallet files integrity:"
+      for file in wallet/cwallet.sso wallet/ewallet.p12; do
+        if [ -f "$file" ]; then
+          size=$(stat -c%s "$file")
+          echo "  $file: $size bytes"
+          if [ $size -eq 0 ]; then
+            echo "    ⚠️ WARNING: $file is empty!"
+          fi
+        fi
+      done
 
   - type: Command
     name: "Modify application.properties"
@@ -106,12 +129,11 @@ steps:
     name: "Setup Java and Build with Maven"
     timeoutInSeconds: 900
     command: |
-      echo "🔧 Installing Eclipse Temurin 23 (matching GitHub Actions)..."
+      echo "🔧 Installing Eclipse Temurin 23..."
       
-      # Usar la misma versión que en GitHub Actions
       cd /opt
       
-      # Descargar Eclipse Temurin 23 (compatible con Oracle Linux)
+      # Descargar Eclipse Temurin 23
       wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.1%2B11/OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
       
       if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz" ]; then
@@ -121,9 +143,8 @@ steps:
         export PATH="$JAVA_HOME/bin:$PATH"
         echo "✅ Eclipse Temurin 23 installed: $JAVA_DIR"
       else
-        echo "❌ Download failed, trying alternative method..."
+        echo "❌ Download failed, trying Amazon Corretto 23..."
       
-        # Fallback: usar Amazon Corretto 23 si está disponible
         wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
         if [ -f "amazon-corretto-23-x64-linux-jdk.tar.gz" ]; then
           tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
@@ -132,8 +153,7 @@ steps:
           export PATH="$JAVA_HOME/bin:$PATH"
           echo "✅ Amazon Corretto 23 installed: $JAVA_DIR"
         else
-          echo "❌ All downloads failed, using system Java..."
-          java -version
+          echo "❌ All Java downloads failed"
           exit 1
         fi
       fi
@@ -172,7 +192,7 @@ steps:
       cp target/TaskService-0.0.1-SNAPSHOT.jar build/
       cp -r wallet/* build/wallet/ 2>/dev/null || true
       
-      echo "Creating Dockerfile (matching GitHub Actions)..."
+      echo "Creating Dockerfile with wallet-only configuration..."
       cat > Dockerfile << 'EOF'
       FROM eclipse-temurin:23-jre
       
@@ -196,22 +216,36 @@ steps:
       RUN echo "===== Contenido de /wallet ====="
       RUN ls -la /wallet/
       
+      # Verificar que NO hay archivos JKS
+      RUN if [ -f "/wallet/keystore.jks" ] || [ -f "/wallet/truststore.jks" ]; then \
+            echo "ERROR: JKS files found - removing them"; \
+            rm -f /wallet/keystore.jks /wallet/truststore.jks; \
+          fi
+      
       # Establecer permisos explícitos
       RUN chmod 755 /app/app.jar
+      RUN chmod 600 /wallet/* 2>/dev/null || true
       
-      # Configurar variables de entorno
+      # Configurar variables de entorno para WALLET-ONLY
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
+      # Forzar uso de wallet solamente
+      ENV ORACLE_NET_WALLET_LOCATION=/wallet
       
       # Puerto de la aplicación
       EXPOSE 8081
       
-      # Comando de inicio con logging detallado
-      ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
+      # Comando de inicio con parámetros para debugging SSL
+      ENTRYPOINT ["java", \
+        "-Djava.security.egd=file:/dev/./urandom", \
+        "-Doracle.net.ssl_client_authentication=false", \
+        "-Doracle.net.ssl_server_dn_match=false", \
+        "-DTNS_ADMIN=/wallet", \
+        "-jar", "/app/app.jar"]
       EOF
       
-      echo "✅ Docker build context prepared"
+      echo "✅ Docker build context prepared (WALLET-ONLY)"
       ls -la build/
 
   - type: Command
@@ -234,12 +268,12 @@ steps:
         exit 1
       fi
       
-      # Probar la imagen localmente como en GitHub Actions
+      # Probar la imagen localmente
       echo "🧪 Testing image locally..."
       docker run --name test-container -d "${IMAGE_TAG}"
       
-      echo "Logs del contenedor de prueba (primeros 10 segundos):"
-      sleep 10
+      echo "Logs del contenedor de prueba (primeros 15 segundos):"
+      sleep 15
       docker logs test-container || echo "Error al obtener logs"
       
       echo "Limpiando contenedor de prueba..."
@@ -248,7 +282,7 @@ steps:
       export IMAGE_FULL_NAME="${IMAGE_TAG}"
       export VERSION="${VERSION}"
       
-      echo "✅ TASKSERVICE BUILD COMPLETED!"
+      echo "✅ TASKSERVICE BUILD COMPLETED (WALLET-ONLY)!"
       echo "📦 Image: ${IMAGE_FULL_NAME}"
 
 outputArtifacts:
