@@ -180,30 +180,30 @@ steps:
       
       echo "Creating Dockerfile..."
       cat > Dockerfile << 'EOF'
-        FROM eclipse-temurin:23-jre
+      FROM eclipse-temurin:23-jre
         
-        WORKDIR /app
+      WORKDIR /app
         
-        RUN mkdir -p /wallet
+      RUN mkdir -p /wallet
         
-        COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
-        COPY build/wallet/ /wallet/
+      COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
+      COPY build/wallet/ /wallet/
         
-        RUN chmod 755 /app/app.jar
-        RUN chmod 600 /wallet/* 2>/dev/null || true
+      RUN chmod 755 /app/app.jar
+      RUN chmod 600 /wallet/* 2>/dev/null || true
         
-        ENV TNS_ADMIN=/wallet
-        ENV ORACLE_HOME=/wallet
-        ENV LD_LIBRARY_PATH=/wallet
+      ENV TNS_ADMIN=/wallet
+      ENV ORACLE_HOME=/wallet
+      ENV LD_LIBRARY_PATH=/wallet
         
-        EXPOSE 8081
+      EXPOSE 8081
         
-        ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
-        EOF
+      ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
+      EOF
         
-        echo "✅ Docker build context prepared"
-        echo "📋 Build directory contents:"
-        ls -la build/
+      echo "✅ Docker build context prepared"
+      echo "📋 Build directory contents:"
+      ls -la build/
 
   - type: Command
     name: "Build Docker image"
