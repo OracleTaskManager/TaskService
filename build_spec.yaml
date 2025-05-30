@@ -16,53 +16,137 @@ env:
 
 steps:
   - type: Command
-    name: "Recreate wallet files from secrets"
+    name: "DEBUG - Recreate wallet files with detailed logging"
     timeoutInSeconds: 300
     command: |
+      echo "🔍 =================================="
+      echo "🔍 DEBUGGING WALLET SECRETS CREATION"
+      echo "🔍 =================================="
+      
       # Crear directorios
       mkdir -p wallet
       
-      # Función para obtener secrets usando OCI CLI nativo
+      # Función para obtener secrets con DEBUG completo
       get_secret() {
         local secret_id=$1
         local output_file=$2
+        local filename=$(basename $output_file)
       
-        echo "Getting secret for: $(basename $output_file)"
+        echo ""
+        echo "🔍 Processing secret: $filename"
+        echo "🔍 Secret OCID: $secret_id"
       
         # Usar OCI CLI con query nativo
         local content=$(oci secrets secret-bundle get --secret-id "$secret_id" --stage LATEST --query 'data."secret-bundle-content".content' --raw-output 2>/dev/null)
+      
         if [ $? -ne 0 ] || [ -z "$content" ]; then
-          echo "WARNING: Failed to get secret $secret_id, creating empty file"
+          echo "❌ FAILED to get secret $secret_id"
+          echo "🔍 Creating empty file for $filename"
           touch "$output_file"
           return 1
         fi
       
+        echo "✅ Secret retrieved successfully"
+        echo "🔍 Content length: ${#content} characters"
+        echo "🔍 First 50 chars: ${content:0:50}..."
+      
         # Intentar decodificar de base64
         if echo "$content" | base64 -d > "$output_file" 2>/dev/null; then
-          echo "✅ Secret decoded for $(basename $output_file)"
+          local file_size=$(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file")
+          echo "✅ Secret decoded successfully for $filename"
+          echo "🔍 Decoded file size: $file_size bytes"
+      
+          # Verificaciones específicas por tipo de archivo
+          case $filename in
+            "cwallet.sso")
+              echo "🔍 cwallet.sso - Oracle SSO wallet file"
+              file "$output_file" || echo "file command not available"
+              ;;
+            "keystore.jks")
+              echo "🔍 keystore.jks - Java KeyStore"
+              # Intentar listar el keystore (sin password por ahora)
+              keytool -list -keystore "$output_file" -storepass "" 2>&1 | head -5 || echo "Cannot read keystore (might need password)"
+              ;;
+            "truststore.jks")
+              echo "🔍 truststore.jks - Java TrustStore"
+              keytool -list -keystore "$output_file" -storepass "" 2>&1 | head -5 || echo "Cannot read truststore (might need password)"
+              ;;
+            "tnsnames.ora")
+              echo "🔍 tnsnames.ora content preview:"
+              head -3 "$output_file" || echo "Cannot read tnsnames.ora"
+              ;;
+            "sqlnet.ora")
+              echo "🔍 sqlnet.ora content preview:"
+              cat "$output_file" || echo "Cannot read sqlnet.ora"
+              ;;
+            "ojdbc.properties")
+              echo "🔍 ojdbc.properties content preview:"
+              head -5 "$output_file" || echo "Cannot read ojdbc.properties"
+              ;;
+          esac
+      
         else
+          echo "⚠️ Base64 decode failed, saving as raw text"
           echo "$content" > "$output_file"
-          echo "✅ Secret saved for $(basename $output_file)"
+          local file_size=$(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file")
+          echo "🔍 Raw file size: $file_size bytes"
         fi
+      
+        echo "🔍 Final file permissions: $(ls -la "$output_file")"
       }
       
-      # Obtener solo archivos del wallet (SIN OCI keys para TaskService)
-      echo "📁 Creating wallet files from secrets..."
-      get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
-      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
-      get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
-      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12" || true
-      get_secret "$WALLET_KEYSTORE_JKS_OCID" "wallet/keystore.jks" || true
-      get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
-      get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
-      get_secret "$WALLET_README_OCID" "wallet/README" || true
-      get_secret "$WALLET_TRUSTSTORE_JKS_OCID" "wallet/truststore.jks" || true
+      # Obtener todos los archivos del wallet con debugging
+      echo ""
+      echo "🔍 Starting wallet file retrieval..."
+      
+      get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso"
+      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora"
+      get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora"
+      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12"
+      get_secret "$WALLET_KEYSTORE_JKS_OCID" "wallet/keystore.jks"
+      get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties"
+      get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem"
+      get_secret "$WALLET_README_OCID" "wallet/README"
+      get_secret "$WALLET_TRUSTSTORE_JKS_OCID" "wallet/truststore.jks"
       
       # Configurar permisos
       chmod 600 wallet/* 2>/dev/null || true
       
-      echo "📋 Wallet files created:"
+      echo ""
+      echo "🔍 =================================="
+      echo "🔍 FINAL WALLET DIRECTORY SUMMARY"
+      echo "🔍 =================================="
       ls -la wallet/
+      
+      echo ""
+      echo "🔍 WALLET FILE SIZES COMPARISON:"
+      echo "🔍 Expected sizes (approximate):"
+      echo "🔍   cwallet.sso: ~7000 bytes"
+      echo "🔍   keystore.jks: ~4000 bytes"
+      echo "🔍   truststore.jks: ~2500 bytes"
+      echo "🔍   tnsnames.ora: ~1400 bytes"
+      echo "🔍   ojdbc.properties: ~700 bytes"
+      echo "🔍   sqlnet.ora: ~100 bytes"
+      
+      echo ""
+      echo "🔍 ACTUAL sizes:"
+      for file in wallet/*; do
+        if [ -f "$file" ]; then
+          local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+          echo "🔍   $(basename $file): $size bytes"
+        fi
+      done
+      
+      echo ""
+      echo "🔍 SUSPICIOUS FILES (empty or too small):"
+      for file in wallet/*; do
+        if [ -f "$file" ]; then
+          local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+          if [ "$size" -lt 10 ]; then
+            echo "❌   $(basename $file): $size bytes (TOO SMALL)"
+          fi
+        fi
+      done
 
   - type: Command
     name: "Modify application.properties"
@@ -131,7 +215,7 @@ steps:
       
       echo "🚀 Building with Maven (exactly like GitHub Actions)..."
       
-      # Usar exactamente el mismo comando que GitHub Actions - NO tests, NO compiler flags
+      # Usar exactamente el mismo comando que GitHub Actions
       mvn clean package -DskipTests
       
       # Si Maven falla, intentar con actualización del compiler plugin
@@ -165,41 +249,69 @@ steps:
       echo "✅ Maven build successful!"
 
   - type: Command
-    name: "Prepare Docker build"
+    name: "Prepare Docker build with DEBUG"
     timeoutInSeconds: 120
     command: |
-      # Crear estructura de build (SOLO wallet, SIN oci-keys)
+      # Crear estructura de build
       mkdir -p build build/wallet
       
       echo "Copying JAR to build directory..."
       cp target/TaskService-0.0.1-SNAPSHOT.jar build/
       
-      echo "Copying wallet..."
+      echo "Copying wallet with verification..."
       cp -r wallet/* build/wallet/ 2>/dev/null || true
       
-      echo "Creating Dockerfile (LIMPIO - solo wallet)..."
+      echo "🔍 Verifying copied wallet files:"
+      ls -la build/wallet/
+      
+      echo "🔍 Comparing original vs copied sizes:"
+      for file in wallet/*; do
+        if [ -f "$file" ]; then
+          local orig_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+          local copy_size=$(stat -c%s "build/$file" 2>/dev/null || stat -f%z "build/$file")
+          echo "🔍   $(basename $file): $orig_size -> $copy_size bytes"
+          if [ "$orig_size" -ne "$copy_size" ]; then
+            echo "❌   SIZE MISMATCH for $(basename $file)!"
+          fi
+        fi
+      done
+      
+      echo "Creating Dockerfile (EXACTLY like GitHub Actions)..."
       cat > Dockerfile << 'EOF'
       FROM eclipse-temurin:23-jre
       
+      # Mostrar versión de Java para verificar
+      RUN java -version
+      
+      # Establecer directorio de trabajo
       WORKDIR /app
       
-      # Solo crear directorio wallet (NO oci-keys)
+      # Crear directorios
       RUN mkdir -p /wallet
       
-      # Copiar JAR y wallet (NO oci-keys)
+      # Copiar JAR y wallet
       COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
       COPY build/wallet/ /wallet/
       
-      RUN chmod 755 /app/app.jar
-      RUN chmod 600 /wallet/* 2>/dev/null || true
+      # Verificar archivos copiados
+      RUN echo "===== Contenido de /app ====="
+      RUN ls -la /app/
       
-      # Variables de entorno SOLO para wallet
+      RUN echo "===== Contenido de /wallet ====="
+      RUN ls -la /wallet/
+      
+      # Establecer permisos explícitos
+      RUN chmod 755 /app/app.jar
+      
+      # Configurar variables de entorno
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
       
+      # Puerto de la aplicación
       EXPOSE 8081
       
+      # Comando de inicio con logging detallado
       ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
       EOF
       
