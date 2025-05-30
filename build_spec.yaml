@@ -74,9 +74,8 @@ steps:
         # Hacer una copia de respaldo
         cp src/main/resources/application.properties src/main/resources/application.properties.backup
       
-        # Aplicar cambio para TNS_ADMIN y configuración SSL
+        # Aplicar cambio para TNS_ADMIN (exactamente como GitHub Actions)
         sed -i 's|TNS_ADMIN=C:/Users/cesar/Wallet_TelegramBotDatabase|TNS_ADMIN=/wallet|g' src/main/resources/application.properties
-        sed -i 's|@TelegramBotDatabase_medium?TNS_ADMIN=/wallet|@TelegramBotDatabase_medium?TNS_ADMIN=/wallet\&oracle.net.ssl_server_dn_match=false|g' src/main/resources/application.properties
       
         echo "✅ application.properties modified successfully"
         echo "📄 New content:"
