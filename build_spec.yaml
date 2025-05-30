@@ -46,7 +46,7 @@ steps:
         fi
       }
       
-      # Obtener archivos del wallet (SIN JKS)
+      # Obtener todos los archivos del wallet (incluyendo JKS por compatibilidad)
       get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
       get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
       get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
@@ -54,23 +54,22 @@ steps:
       get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
       get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
       get_secret "$WALLET_README_OCID" "wallet/README" || true
+      # Incluir JKS por compatibilidad
+      get_secret "$WALLET_KEYSTORE_JKS_OCID" "wallet/keystore.jks" || true
+      get_secret "$WALLET_TRUSTSTORE_JKS_OCID" "wallet/truststore.jks" || true
       
-      echo "⚠️ SKIPPING keystore.jks and truststore.jks (not needed)"
-      
-      # Crear ojdbc.properties optimizado (SIN JKS)
-      echo "✅ Creating optimized ojdbc.properties"
+      # Crear ojdbc.properties compatible (mantener configuración original)
+      echo "✅ Creating compatible ojdbc.properties"
       cat > wallet/ojdbc.properties << 'EOF'
-      # Connection property while using Oracle wallets - WALLET ONLY
+      # Connection property while using Oracle wallets
       oracle.net.wallet_location=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=${TNS_ADMIN})))
-      
-      # DISABLE JKS - prevent Oracle JDBC from looking for them
       oracle.net.ssl_client_authentication=false
       oracle.net.ssl_server_dn_match=false
       oracle.net.authentication_services=(TCPS,NTS)
       EOF
       
-      # Crear sqlnet.ora optimizado (SIN JKS)
-      echo "✅ Creating optimized sqlnet.ora"
+      # Crear sqlnet.ora compatible
+      echo "✅ Creating compatible sqlnet.ora"
       cat > wallet/sqlnet.ora << 'EOF'
       WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
       SSL_SERVER_DN_MATCH=no
@@ -107,22 +106,36 @@ steps:
     name: "Setup Java and Build with Maven"
     timeoutInSeconds: 900
     command: |
-      echo "🔧 Installing Amazon Corretto 21 (fast and reliable)..."
+      echo "🔧 Installing Eclipse Temurin 23 (matching GitHub Actions)..."
       
-      # Amazon Corretto 21 - compatible con Oracle Linux
+      # Usar la misma versión que en GitHub Actions
       cd /opt
-      wget -q https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz
       
-      if [ -f "amazon-corretto-21-x64-linux-jdk.tar.gz" ]; then
-        tar -xzf amazon-corretto-21-x64-linux-jdk.tar.gz
-        JAVA_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-21*" -type d | head -1)
+      # Descargar Eclipse Temurin 23 (compatible con Oracle Linux)
+      wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.1%2B11/OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
+      
+      if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz" ]; then
+        tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
+        JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
         export JAVA_HOME="$JAVA_DIR"
         export PATH="$JAVA_HOME/bin:$PATH"
-        echo "✅ Amazon Corretto 21 installed: $JAVA_DIR"
+        echo "✅ Eclipse Temurin 23 installed: $JAVA_DIR"
       else
-        echo "❌ Download failed, using system Java..."
-        export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
-        export PATH=$JAVA_HOME/bin:$PATH
+        echo "❌ Download failed, trying alternative method..."
+      
+        # Fallback: usar Amazon Corretto 23 si está disponible
+        wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
+        if [ -f "amazon-corretto-23-x64-linux-jdk.tar.gz" ]; then
+          tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
+          JAVA_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-23*" -type d | head -1)
+          export JAVA_HOME="$JAVA_DIR"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          echo "✅ Amazon Corretto 23 installed: $JAVA_DIR"
+        else
+          echo "❌ All downloads failed, using system Java..."
+          java -version
+          exit 1
+        fi
       fi
       
       echo "☕ Java version:"
@@ -130,14 +143,18 @@ steps:
       
       cd $OCI_PRIMARY_SOURCE_DIR
       
-      echo "🚀 Building with Maven..."
+      echo "🚀 Building with Maven (Java 23)..."
       mvn clean package -DskipTests \
-          -Dmaven.compiler.source=11 \
-          -Dmaven.compiler.target=11
+          -Dmaven.compiler.source=23 \
+          -Dmaven.compiler.target=23 \
+          -Dmaven.compiler.release=23
       
       if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
         echo "❌ JAR file not found!"
+        echo "Target directory contents:"
         ls -la target/ || echo "No target directory"
+        echo "Checking for alternative JAR names:"
+        find target/ -name "*.jar" 2>/dev/null || echo "No JAR files found"
         exit 1
       fi
       
@@ -155,25 +172,42 @@ steps:
       cp target/TaskService-0.0.1-SNAPSHOT.jar build/
       cp -r wallet/* build/wallet/ 2>/dev/null || true
       
-      echo "Creating Dockerfile..."
+      echo "Creating Dockerfile (matching GitHub Actions)..."
       cat > Dockerfile << 'EOF'
-      FROM openjdk:21-jre-slim
+      FROM eclipse-temurin:23-jre
       
+      # Mostrar versión de Java para verificar
+      RUN java -version
+      
+      # Establecer directorio de trabajo
       WORKDIR /app
       
+      # Crear directorios
       RUN mkdir -p /wallet
       
+      # Copiar JAR y wallet
       COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
       COPY build/wallet/ /wallet/
       
+      # Verificar archivos copiados
+      RUN echo "===== Contenido de /app ====="
+      RUN ls -la /app/
+      
+      RUN echo "===== Contenido de /wallet ====="
+      RUN ls -la /wallet/
+      
+      # Establecer permisos explícitos
       RUN chmod 755 /app/app.jar
       
+      # Configurar variables de entorno
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
       
+      # Puerto de la aplicación
       EXPOSE 8081
       
+      # Comando de inicio con logging detallado
       ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
       EOF
       
@@ -199,6 +233,17 @@ steps:
         echo "❌ Docker build failed"
         exit 1
       fi
+      
+      # Probar la imagen localmente como en GitHub Actions
+      echo "🧪 Testing image locally..."
+      docker run --name test-container -d "${IMAGE_TAG}"
+      
+      echo "Logs del contenedor de prueba (primeros 10 segundos):"
+      sleep 10
+      docker logs test-container || echo "Error al obtener logs"
+      
+      echo "Limpiando contenedor de prueba..."
+      docker rm -f test-container || echo "Error al eliminar contenedor"
       
       export IMAGE_FULL_NAME="${IMAGE_TAG}"
       export VERSION="${VERSION}"
