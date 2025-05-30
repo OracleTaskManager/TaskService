@@ -74,8 +74,9 @@ steps:
         # Hacer una copia de respaldo
         cp src/main/resources/application.properties src/main/resources/application.properties.backup
       
-        # Aplicar cambio para TNS_ADMIN
+        # Aplicar cambio para TNS_ADMIN y configuración SSL
         sed -i 's|TNS_ADMIN=C:/Users/cesar/Wallet_TelegramBotDatabase|TNS_ADMIN=/wallet|g' src/main/resources/application.properties
+        sed -i 's|@TelegramBotDatabase_medium?TNS_ADMIN=/wallet|@TelegramBotDatabase_medium?TNS_ADMIN=/wallet\&oracle.net.ssl_server_dn_match=false|g' src/main/resources/application.properties
       
         echo "✅ application.properties modified successfully"
         echo "📄 New content:"
@@ -181,26 +182,26 @@ steps:
       echo "Creating Dockerfile..."
       cat > Dockerfile << 'EOF'
       FROM eclipse-temurin:23-jre
-        
+      
       WORKDIR /app
-        
+      
       RUN mkdir -p /wallet
-        
+      
       COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
       COPY build/wallet/ /wallet/
-        
+      
       RUN chmod 755 /app/app.jar
       RUN chmod 600 /wallet/* 2>/dev/null || true
-        
+      
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
-        
+      
       EXPOSE 8081
-        
+      
       ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
       EOF
-        
+      
       echo "✅ Docker build context prepared"
       echo "📋 Build directory contents:"
       ls -la build/
