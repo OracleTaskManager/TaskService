@@ -111,14 +111,34 @@ steps:
       
       # NO TOCAR archivos de configuración - exactamente como GitHub Actions
       
-      # NO TOCAR ojdbc.properties - usar exactamente como viene del Vault (igual que GitHub Actions)
-      echo "✅ Using ojdbc.properties as-is from Vault (same as GitHub Actions)"
-      echo "📄 Current ojdbc.properties content:"
+      # NO TOCAR ojdbc.properties - crear uno optimizado que DESACTIVE JKS completamente
+      echo "✅ Creating optimized ojdbc.properties (disable JKS completely)"
+      cat > wallet/ojdbc.properties << 'OJDBC_EOF'
+    # Connection property while using Oracle wallets - WALLET ONLY, NO JKS
+      oracle.net.wallet_location=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=${TNS_ADMIN})))
+      
+      # EXPLICITLY DISABLE JKS - prevent Oracle JDBC from looking for them
+      oracle.net.ssl_client_authentication=false
+      oracle.net.ssl_server_dn_match=false
+      
+      # Use WALLET authentication only
+      oracle.net.authentication_services=(TCPS,NTS)
+      OJDBC_EOF
+      echo "📄 Modified ojdbc.properties content:"
       cat wallet/ojdbc.properties
       
-      # NO TOCAR sqlnet.ora - usar exactamente como viene del Vault (igual que GitHub Actions)  
-      echo "✅ Using sqlnet.ora as-is from Vault (same as GitHub Actions)"
-      echo "📄 Current sqlnet.ora content:"
+      # Crear sqlnet.ora optimizado para WALLET-ONLY (sin JKS)
+      echo "✅ Creating optimized sqlnet.ora (wallet-only, no JKS references)"
+      cat > wallet/sqlnet.ora << 'SQLNET_EOF'
+      WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
+      SSL_SERVER_DN_MATCH=no
+      SSL_CLIENT_AUTHENTICATION=false
+      NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
+      SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
+      # Disable any keystore references
+      SQLNET.WALLET_OVERRIDE=TRUE
+      SQLNET_EOF
+      echo "📄 Modified sqlnet.ora content:"
       cat wallet/sqlnet.ora
       
       echo "✅ Wallet configuration optimized"
@@ -135,31 +155,31 @@ steps:
       echo ""
       echo "🔍 WALLET FILE SIZES COMPARISON:"
       echo "🔍 Expected sizes (approximate):"
-      echo "🔍   cwallet.sso: ~7000 bytes"
-      echo "🔍   keystore.jks: ~4000 bytes"
-      echo "🔍   truststore.jks: ~2500 bytes"
-      echo "🔍   tnsnames.ora: ~1400 bytes"
-      echo "🔍   ojdbc.properties: ~700 bytes"
-      echo "🔍   sqlnet.ora: ~100 bytes"
+    echo "🔍   cwallet.sso: ~7000 bytes"
+    echo "🔍   keystore.jks: ~4000 bytes"
+    echo "🔍   truststore.jks: ~2500 bytes"
+    echo "🔍   tnsnames.ora: ~1400 bytes"
+    echo "🔍   ojdbc.properties: ~700 bytes"
+    echo "🔍   sqlnet.ora: ~100 bytes"
       
       echo ""
       echo "🔍 ACTUAL sizes:"
       for file in wallet/*; do
-        if [ -f "$file" ]; then
-          local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
-          echo "🔍   $(basename $file): $size bytes"
-        fi
+      if [ -f "$file" ]; then
+      local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+    echo "🔍   $(basename $file): $size bytes"
+      fi
       done
       
       echo ""
       echo "🔍 SUSPICIOUS FILES (empty or too small):"
       for file in wallet/*; do
-        if [ -f "$file" ]; then
-          local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
-          if [ "$size" -lt 10 ]; then
-            echo "❌   $(basename $file): $size bytes (TOO SMALL)"
-          fi
-        fi
+      if [ -f "$file" ]; then
+      local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+      if [ "$size" -lt 10 ]; then
+    echo "❌   $(basename $file): $size bytes (TOO SMALL)"
+      fi
+      fi
       done
 
   - type: Command
@@ -188,13 +208,13 @@ steps:
       echo "✅ sqlnet.ora updated to use wallet-only authentication"
       cat wallet/sqlnet.ora
       fi
-  
-        echo "✅ application.properties modified successfully"
-        echo "📄 New content:"
-        cat src/main/resources/application.properties
-        else
-        echo "⚠️ application.properties not found, skipping modification"
-        fi
+      
+      echo "✅ application.properties modified successfully"
+      echo "📄 New content:"
+      cat src/main/resources/application.properties
+      else
+      echo "⚠️ application.properties not found, skipping modification"
+      fi
 
   - type: Command
     name: "Install Java 23 and Build with Maven"
