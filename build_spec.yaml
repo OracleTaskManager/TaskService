@@ -96,12 +96,17 @@ steps:
       wget -q https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz
       
       if [ ! -f "jdk-23_linux-x64_bin.tar.gz" ]; then
-        echo "❌ Failed to download Java 23, trying alternative..."
-        # Alternative: Use OpenJDK 21 (closest available)
-        wget -q https://download.java.net/java/GA/jdk21.0.1/415e3f918a1f4062a0074a2794853d0d/12/GPL/openjdk-21.0.1_linux-x64_bin.tar.gz
-        tar -xzf openjdk-21.0.1_linux-x64_bin.tar.gz
-        JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-21*" -type d | head -1)
-        echo "⚠️ Using Java 21 instead: $JAVA_DIR"
+        echo "❌ Failed to download Java 23, trying alternative mirror..."
+        # Try alternative Java 23 source
+        wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23%2B37/OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz
+        if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz" ]; then
+          tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz
+          JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
+          echo "✅ Using Java 23 from alternative source: $JAVA_DIR"
+        else
+          echo "❌ Cannot download Java 23, exiting..."
+          exit 1
+        fi
       else
         echo "✅ Java 23 downloaded successfully"
         tar -xzf jdk-23_linux-x64_bin.tar.gz
@@ -125,10 +130,20 @@ steps:
       echo "📋 Maven version:"
       mvn -version
       
-      echo "🚀 Building with Maven..."
+      echo "🚀 Building with Maven (exactly like GitHub Actions)..."
       
-      # Build con Maven
+      # Usar exactamente el mismo comando que GitHub Actions - NO tests, NO compiler flags
       mvn clean package -DskipTests
+      
+      # Si Maven falla, intentar con actualización del compiler plugin
+      if [ $? -ne 0 ]; then
+        echo "⚠️ Standard build failed, trying with updated maven compiler plugin..."
+        mvn clean package -DskipTests \
+            -Dmaven.compiler.plugin.version=3.12.1 \
+            -Dmaven.compiler.source=23 \
+            -Dmaven.compiler.target=23 \
+            -Dmaven.compiler.release=23
+      fi
       
       echo "📦 Build completed, checking results:"
       ls -la target/
@@ -165,30 +180,30 @@ steps:
       
       echo "Creating Dockerfile..."
       cat > Dockerfile << 'EOF'
-      FROM eclipse-temurin:23-jre
-      
-      WORKDIR /app
-      
-      RUN mkdir -p /wallet
-      
-      COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
-      COPY build/wallet/ /wallet/
-      
-      RUN chmod 755 /app/app.jar
-      RUN chmod 600 /wallet/* 2>/dev/null || true
-      
-      ENV TNS_ADMIN=/wallet
-      ENV ORACLE_HOME=/wallet
-      ENV LD_LIBRARY_PATH=/wallet
-      
-      EXPOSE 8081
-      
-      ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
-      EOF
-      
-      echo "✅ Docker build context prepared"
-      echo "📋 Build directory contents:"
-      ls -la build/
+        FROM eclipse-temurin:23-jre
+        
+        WORKDIR /app
+        
+        RUN mkdir -p /wallet
+        
+        COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
+        COPY build/wallet/ /wallet/
+        
+        RUN chmod 755 /app/app.jar
+        RUN chmod 600 /wallet/* 2>/dev/null || true
+        
+        ENV TNS_ADMIN=/wallet
+        ENV ORACLE_HOME=/wallet
+        ENV LD_LIBRARY_PATH=/wallet
+        
+        EXPOSE 8081
+        
+        ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
+        EOF
+        
+        echo "✅ Docker build context prepared"
+        echo "📋 Build directory contents:"
+        ls -la build/
 
   - type: Command
     name: "Build Docker image"
