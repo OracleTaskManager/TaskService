@@ -1,0 +1,246 @@
+version: 0.1
+component: build
+timeoutInSeconds: 1200
+shell: bash
+
+env:
+  variables:
+    REGISTRY: "mx-queretaro-1.ocir.io"
+    NAMESPACE: "axfvmmw9g9lu"
+    REPOSITORY: "taskmanager"
+    IMAGE_NAME: "task-service"
+
+  exportedVariables:
+    - IMAGE_FULL_NAME
+    - VERSION
+
+steps:
+  - type: Command
+    name: "Install Java 23"
+    timeoutInSeconds: 600
+    command: |
+      echo "🔧 Installing Java 23..."
+      
+      cd /opt
+      # Descargar Java 23 desde Oracle
+      wget -q https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz
+      tar -xzf jdk-23_linux-x64_bin.tar.gz
+      
+      # Encontrar el directorio correcto de Java 23
+      JAVA23_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
+      echo "Java 23 directory: $JAVA23_DIR"
+      
+      # Crear symlink para fácil acceso
+      ln -sf "$JAVA23_DIR" /opt/java23
+      
+      echo "✅ Java 23 installed successfully"
+
+  - type: Command
+    name: "Recreate wallet files from secrets"
+    timeoutInSeconds: 300
+    command: |
+      # Crear directorios
+      mkdir -p wallet
+      
+      # Función para obtener secrets usando OCI CLI nativo
+      get_secret() {
+        local secret_id=$1
+        local output_file=$2
+      
+        echo "Getting secret for: $(basename $output_file)"
+      
+        # Usar OCI CLI con query nativo
+        local content=$(oci secrets secret-bundle get --secret-id "$secret_id" --stage LATEST --query 'data."secret-bundle-content".content' --raw-output 2>/dev/null)
+        if [ $? -ne 0 ] || [ -z "$content" ]; then
+          echo "WARNING: Failed to get secret $secret_id, creating empty file"
+          touch "$output_file"
+          return 1
+        fi
+      
+        # Intentar decodificar de base64
+        if echo "$content" | base64 -d > "$output_file" 2>/dev/null; then
+          echo "✅ Secret decoded for $(basename $output_file)"
+        else
+          echo "$content" > "$output_file"
+          echo "✅ Secret saved for $(basename $output_file)"
+        fi
+      }
+      
+      # Obtener todos los archivos del wallet (sin OCI keys para TaskService)
+      echo "📁 Creating wallet files from secrets..."
+      get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
+      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
+      get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
+      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12" || true
+      get_secret "$WALLET_KEYSTORE_JKS_OCID" "wallet/keystore.jks" || true
+      get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
+      get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
+      get_secret "$WALLET_README_OCID" "wallet/README" || true
+      get_secret "$WALLET_TRUSTSTORE_JKS_OCID" "wallet/truststore.jks" || true
+      
+      # Configurar permisos
+      chmod 600 wallet/* 2>/dev/null || true
+      
+      echo "📋 Wallet files created:"
+      ls -la wallet/
+
+  - type: Command
+    name: "Modify application.properties"
+    timeoutInSeconds: 60
+    command: |
+      if [ -f "src/main/resources/application.properties" ]; then
+        echo "🔧 Modifying application.properties..."
+      
+        # Hacer una copia de respaldo
+        cp src/main/resources/application.properties src/main/resources/application.properties.backup
+      
+        # Aplicar cambio para TNS_ADMIN (misma lógica que GitHub Actions)
+        sed -i 's|TNS_ADMIN=C:/Users/cesar/Wallet_TelegramBotDatabase|TNS_ADMIN=/wallet|g' src/main/resources/application.properties
+      
+        echo "✅ application.properties modified successfully"
+        echo "📄 New content:"
+        cat src/main/resources/application.properties
+      else
+        echo "⚠️ application.properties not found, skipping modification"
+      fi
+
+  - type: Command
+    name: "Build with Maven using Java 23"
+    timeoutInSeconds: 600
+    command: |
+      # Configurar Java 23 de forma robusta
+      export JAVA_HOME=/opt/java23
+      export PATH=$JAVA_HOME/bin:$PATH
+      
+      echo "☕ Verifying Java 23 installation:"
+      java -version
+      javac -version
+      echo "🔧 JAVA_HOME: $JAVA_HOME"
+      echo "🔧 PATH: $PATH"
+      
+      echo "📋 Maven version:"
+      mvn -version
+      
+      echo "🚀 Building with Maven (same as GitHub Actions)..."
+      
+      # Usar exactamente el mismo comando que GitHub Actions
+      mvn clean package -DskipTests
+      
+      echo "📦 Build completed, checking results:"
+      ls -la target/
+      
+      # Verificaciones adicionales
+      if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
+        echo "❌ JAR file not found!"
+        exit 1
+      fi
+      
+      JAR_SIZE=$(stat -c%s "target/TaskService-0.0.1-SNAPSHOT.jar" 2>/dev/null || stat -f%z "target/TaskService-0.0.1-SNAPSHOT.jar")
+      echo "📦 JAR size: $JAR_SIZE bytes"
+      
+      if [ "$JAR_SIZE" -lt 1000000 ]; then  # Menos de 1MB es sospechoso
+        echo "⚠️ JAR seems small for a Spring Boot app"
+      fi
+      
+      echo "✅ Maven build successful!"
+
+  - type: Command
+    name: "Prepare Docker build (GitHub Actions style)"
+    timeoutInSeconds: 120
+    command: |
+      # Usar exactamente la misma estructura que GitHub Actions
+      mkdir -p build build/wallet
+      
+      echo "Copying JAR to build directory..."
+      cp target/TaskService-0.0.1-SNAPSHOT.jar build/
+      
+      echo "Copying wallet..."
+      cp -r wallet/* build/wallet/ 2>/dev/null || true
+      
+      echo "Creating Dockerfile (same as GitHub Actions with Java 23)..."
+      cat > Dockerfile << 'EOF'
+      FROM eclipse-temurin:23-jre
+      
+      # Mostrar versión de Java para verificar
+      RUN java -version
+      
+      # Establecer directorio de trabajo
+      WORKDIR /app
+      
+      # Crear directorios
+      RUN mkdir -p /wallet
+      
+      # Copiar JAR y wallet
+      COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
+      COPY build/wallet/ /wallet/
+      
+      # Verificar archivos copiados
+      RUN echo "===== Contenido de /app ====="
+      RUN ls -la /app/
+      
+      RUN echo "===== Contenido de /wallet ====="
+      RUN ls -la /wallet/
+      
+      # Establecer permisos explícitos
+      RUN chmod 755 /app/app.jar
+      
+      # Configurar variables de entorno
+      ENV TNS_ADMIN=/wallet
+      ENV ORACLE_HOME=/wallet
+      ENV LD_LIBRARY_PATH=/wallet
+      
+      # Puerto de la aplicación (8081 para TaskService)
+      EXPOSE 8081
+      
+      # Comando de inicio con logging detallado
+      ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
+      EOF
+      
+      echo "✅ Docker build context prepared"
+      echo "📋 Build directory contents:"
+      ls -la build/
+      
+      echo "📄 Dockerfile created:"
+      cat Dockerfile
+
+  - type: Command
+    name: "Build Docker image"
+    timeoutInSeconds: 900
+    command: |
+      # Generar versión única
+      VERSION="$(date +'%Y%m%d-%H%M%S')"
+      if [ -d ".git" ]; then
+        COMMIT_SHORT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        VERSION="${VERSION}-${COMMIT_SHORT}"
+      fi
+      
+      IMAGE_TAG="${REGISTRY}/${NAMESPACE}/${REPOSITORY}/${IMAGE_NAME}:${VERSION}"
+      echo "🐳 Building Docker image: ${IMAGE_TAG}"
+      
+      # Construir imagen (sin push - eso lo hace deliver-image)
+      docker build --no-cache -t "${IMAGE_TAG}" .
+      
+      if [ $? -ne 0 ]; then
+        echo "❌ Docker build failed"
+        exit 1
+      fi
+      
+      echo "✅ Docker image built successfully!"
+      
+      # Exportar variables para deliver-image stage
+      export IMAGE_FULL_NAME="${IMAGE_TAG}"
+      export VERSION="${VERSION}"
+      
+      echo "🎯 IMAGE_FULL_NAME=${IMAGE_FULL_NAME}"
+      echo "🎯 VERSION=${VERSION}"
+      
+      echo "============================================"
+      echo "✅ TASKSERVICE BUILD COMPLETED SUCCESSFULLY!"
+      echo "📦 Image: ${IMAGE_FULL_NAME}"
+      echo "🚀 Ready for deliver-image stage"
+      echo "============================================"
+
+outputArtifacts:
+  - name: task-service-image
+    type: DOCKER_IMAGE
+    location: ${IMAGE_FULL_NAME}
