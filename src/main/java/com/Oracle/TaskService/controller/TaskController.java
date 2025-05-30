@@ -4,13 +4,14 @@ import com.Oracle.TaskService.data.*;
 import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.service.TaskAssignmentService;
 import com.Oracle.TaskService.service.TaskService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
+
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -172,15 +173,30 @@ public class TaskController {
 
   @PreAuthorize("hasRole('Manager')")
   @DeleteMapping("/")
-  public ResponseEntity<?> deleteTask(@RequestParam("task_id") Long task_id) {
+  public ResponseEntity<?> deleteTask(@RequestParam("task_id") Long task_id, HttpServletRequest request) {
     try{
-      String url = "http://140.84.189.81/api/files/attachments/" + task_id;
+      String url = "http://localhost:8082/attachments/task/" + task_id;
       RestTemplate restTemplate = new RestTemplate();
 
-      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);
-      if (!response.getStatusCode().is2xxSuccessful()) {
-          return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+      HttpHeaders headers = new HttpHeaders();
+      String authHeader = request.getHeader("Authorization");
+      if(authHeader != null){
+        headers.set("Authorization", authHeader);
       }
+
+      HttpEntity<?> entity = new HttpEntity<>(headers);
+
+      ResponseEntity<String> response = restTemplate.exchange(
+          url, HttpMethod.DELETE, entity, String.class);
+
+      System.out.println("Response from attachment deletion: " + response.getStatusCode());
+
+      if (!response.getStatusCode().is2xxSuccessful()) {
+        System.out.println("Failed to delete attachments for task ID: " + task_id);
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+
+
 
       if (taskService.deleteTaskById(task_id)) {
         return new ResponseEntity<>(HttpStatus.OK);
