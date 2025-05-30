@@ -16,171 +16,75 @@ env:
 
 steps:
   - type: Command
-    name: "DEBUG - Recreate wallet files with detailed logging"
+    name: "Recreate wallet files from secrets"
     timeoutInSeconds: 300
     command: |
-      echo "🔍 =================================="
-      echo "🔍 DEBUGGING WALLET SECRETS CREATION"
-      echo "🔍 =================================="
+      echo "📁 Creating wallet files from secrets..."
       
       # Crear directorios
       mkdir -p wallet
       
-      # Función para obtener secrets con DEBUG completo
+      # Función para obtener secrets
       get_secret() {
         local secret_id=$1
         local output_file=$2
-        local filename=$(basename $output_file)
       
-        echo ""
-        echo "🔍 Processing secret: $filename"
-        echo "🔍 Secret OCID: $secret_id"
+        echo "Getting secret for: $(basename $output_file)"
       
-        # Usar OCI CLI con query nativo
         local content=$(oci secrets secret-bundle get --secret-id "$secret_id" --stage LATEST --query 'data."secret-bundle-content".content' --raw-output 2>/dev/null)
-      
         if [ $? -ne 0 ] || [ -z "$content" ]; then
-          echo "❌ FAILED to get secret $secret_id"
-          echo "🔍 Creating empty file for $filename"
+          echo "WARNING: Failed to get secret $secret_id, creating empty file"
           touch "$output_file"
           return 1
         fi
       
-        echo "✅ Secret retrieved successfully"
-        echo "🔍 Content length: ${#content} characters"
-        echo "🔍 First 50 chars: ${content:0:50}..."
-      
-        # Intentar decodificar de base64
         if echo "$content" | base64 -d > "$output_file" 2>/dev/null; then
-          local file_size=$(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file")
-          echo "✅ Secret decoded successfully for $filename"
-          echo "🔍 Decoded file size: $file_size bytes"
-      
-          # Verificaciones específicas por tipo de archivo
-          case $filename in
-            "cwallet.sso")
-              echo "🔍 cwallet.sso - Oracle SSO wallet file"
-              file "$output_file" || echo "file command not available"
-              ;;
-            "keystore.jks")
-              echo "🔍 keystore.jks - Java KeyStore"
-              # Intentar listar el keystore (sin password por ahora)
-              keytool -list -keystore "$output_file" -storepass "" 2>&1 | head -5 || echo "Cannot read keystore (might need password)"
-              ;;
-            "truststore.jks")
-              echo "🔍 truststore.jks - Java TrustStore"
-              keytool -list -keystore "$output_file" -storepass "" 2>&1 | head -5 || echo "Cannot read truststore (might need password)"
-              ;;
-            "tnsnames.ora")
-              echo "🔍 tnsnames.ora content preview:"
-              head -3 "$output_file" || echo "Cannot read tnsnames.ora"
-              ;;
-            "sqlnet.ora")
-              echo "🔍 sqlnet.ora content preview:"
-              cat "$output_file" || echo "Cannot read sqlnet.ora"
-              ;;
-            "ojdbc.properties")
-              echo "🔍 ojdbc.properties content preview:"
-              head -5 "$output_file" || echo "Cannot read ojdbc.properties"
-              ;;
-          esac
-      
+          echo "✅ Secret decoded for $(basename $output_file)"
         else
-          echo "⚠️ Base64 decode failed, saving as raw text"
           echo "$content" > "$output_file"
-          local file_size=$(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file")
-          echo "🔍 Raw file size: $file_size bytes"
+          echo "✅ Secret saved for $(basename $output_file)"
         fi
-      
-        echo "🔍 Final file permissions: $(ls -la "$output_file")"
       }
       
-      echo ""
-      echo "🔍 Starting wallet file retrieval..."
+      # Obtener archivos del wallet (SIN JKS)
+      get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
+      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
+      get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
+      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12" || true
+      get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
+      get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
+      get_secret "$WALLET_README_OCID" "wallet/README" || true
       
-      get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso"
-      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora"  
-      get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora"
-      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12"  
-      get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties"
-      get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem"
-      get_secret "$WALLET_README_OCID" "wallet/README"
+      echo "⚠️ SKIPPING keystore.jks and truststore.jks (not needed)"
       
-      # SKIP JKS files - GitHub Actions doesn't need them
-      echo "⚠️ SKIPPING keystore.jks and truststore.jks (not used in GitHub Actions)"
-      
-      # NO TOCAR archivos de configuración - exactamente como GitHub Actions
-      
-      # NO TOCAR ojdbc.properties - crear uno optimizado que DESACTIVE JKS completamente
-      echo "✅ Creating optimized ojdbc.properties (disable JKS completely)"
+      # Crear ojdbc.properties optimizado (SIN JKS)
+      echo "✅ Creating optimized ojdbc.properties"
       cat > wallet/ojdbc.properties << 'EOF'
-    # Connection property while using Oracle wallets - WALLET ONLY, NO JKS
+      # Connection property while using Oracle wallets - WALLET ONLY
       oracle.net.wallet_location=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=${TNS_ADMIN})))
       
-      # EXPLICITLY DISABLE JKS - prevent Oracle JDBC from looking for them
+      # DISABLE JKS - prevent Oracle JDBC from looking for them
       oracle.net.ssl_client_authentication=false
       oracle.net.ssl_server_dn_match=false
-      
-      # Use WALLET authentication only
       oracle.net.authentication_services=(TCPS,NTS)
       EOF
-      echo "📄 Modified ojdbc.properties content:"
-      cat wallet/ojdbc.properties
       
-      # Crear sqlnet.ora optimizado para WALLET-ONLY (sin JKS)
-      echo "✅ Creating optimized sqlnet.ora (wallet-only, no JKS references)"
+      # Crear sqlnet.ora optimizado (SIN JKS)
+      echo "✅ Creating optimized sqlnet.ora"
       cat > wallet/sqlnet.ora << 'EOF'
       WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
       SSL_SERVER_DN_MATCH=no
       SSL_CLIENT_AUTHENTICATION=false
       NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
       SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
-      # Disable any keystore references
       SQLNET.WALLET_OVERRIDE=TRUE
       EOF
-      echo "📄 Modified sqlnet.ora content:"
-      cat wallet/sqlnet.ora
-      
-      echo "✅ Wallet configuration optimized"
       
       # Configurar permisos
       chmod 600 wallet/* 2>/dev/null || true
       
-      echo ""
-      echo "🔍 =================================="
-      echo "🔍 FINAL WALLET DIRECTORY SUMMARY"
-      echo "🔍 =================================="
+      echo "📋 Wallet files created:"
       ls -la wallet/
-      
-      echo ""
-      echo "🔍 WALLET FILE SIZES COMPARISON:"
-      echo "🔍 Expected sizes (approximate):"
-    echo "🔍   cwallet.sso: ~7000 bytes"
-    echo "🔍   keystore.jks: ~4000 bytes"
-    echo "🔍   truststore.jks: ~2500 bytes"
-    echo "🔍   tnsnames.ora: ~1400 bytes"
-    echo "🔍   ojdbc.properties: ~700 bytes"
-    echo "🔍   sqlnet.ora: ~100 bytes"
-      
-      echo ""
-      echo "🔍 ACTUAL sizes:"
-      for file in wallet/*; do
-      if [ -f "$file" ]; then
-      local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
-    echo "🔍   $(basename $file): $size bytes"
-      fi
-      done
-      
-      echo ""
-      echo "🔍 SUSPICIOUS FILES (empty or too small):"
-      for file in wallet/*; do
-      if [ -f "$file" ]; then
-      local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
-      if [ "$size" -lt 10 ]; then
-    echo "❌   $(basename $file): $size bytes (TOO SMALL)"
-      fi
-      fi
-      done
 
   - type: Command
     name: "Modify application.properties"
@@ -189,42 +93,23 @@ steps:
       if [ -f "src/main/resources/application.properties" ]; then
         echo "🔧 Modifying application.properties..."
       
-        # Hacer una copia de respaldo
         cp src/main/resources/application.properties src/main/resources/application.properties.backup
       
-        # Aplicar cambio para TNS_ADMIN Y configurar sqlnet.ora
         sed -i 's|TNS_ADMIN=C:/Users/cesar/Wallet_TelegramBotDatabase|TNS_ADMIN=/wallet|g' src/main/resources/application.properties
       
-        # Arreglar sqlnet.ora para evitar keystores corruptos
-        if [ -f "wallet/sqlnet.ora" ]; then
-          echo "🔧 Fixing sqlnet.ora to avoid corrupted keystores..."
-          cat > wallet/sqlnet.ora << 'SQLNET_EOF'
-        WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
-        SSL_SERVER_DN_MATCH=no
-        SSL_CLIENT_AUTHENTICATION=false
-        SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
-        NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
-        SQLNET_EOF
-        echo "✅ sqlnet.ora updated to use wallet-only authentication"
-        cat wallet/sqlnet.ora
-        fi
-        
         echo "✅ application.properties modified successfully"
-        echo "📄 New content:"
         cat src/main/resources/application.properties
-        else
+      else
         echo "⚠️ application.properties not found, skipping modification"
-        fi
+      fi
 
   - type: Command
     name: "Install Java 23 and Build with Maven"
     timeoutInSeconds: 900
     command: |
-      echo "🔧 Installing Java 23 and building in same step..."
+      echo "🔧 Installing Java 23..."
       
-      # Instalar Java 23 directamente en este step
       cd /opt
-      echo "📥 Downloading Java 23..."
       wget -q https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz
       
       if [ ! -f "jdk-23_linux-x64_bin.tar.gz" ]; then
@@ -233,42 +118,27 @@ steps:
         if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz" ]; then
           tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23_37.tar.gz
           JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
-          echo "✅ Using Java 23 from alternative source: $JAVA_DIR"
         else
           echo "❌ Cannot download Java 23, exiting..."
           exit 1
         fi
       else
-        echo "✅ Java 23 downloaded successfully"
         tar -xzf jdk-23_linux-x64_bin.tar.gz
         JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
-        echo "✅ Using Java 23: $JAVA_DIR"
       fi
       
-      # Configurar Java inmediatamente
       export JAVA_HOME="$JAVA_DIR"
       export PATH="$JAVA_HOME/bin:$PATH"
       
-      echo "☕ Verifying Java installation:"
+      echo "☕ Java 23 installed:"
       java -version
-      javac -version
-      echo "🔧 JAVA_HOME: $JAVA_HOME"
-      echo "🔧 PATH: $PATH"
       
-      # Ir de vuelta al directorio del proyecto
       cd $OCI_PRIMARY_SOURCE_DIR
       
-      echo "📋 Maven version:"
-      mvn -version
-      
-      echo "🚀 Building with Maven (exactly like GitHub Actions)..."
-      
-      # Usar exactamente el mismo comando que GitHub Actions
+      echo "🚀 Building with Maven..."
       mvn clean package -DskipTests
       
-      # Si Maven falla, intentar con actualización del compiler plugin
       if [ $? -ne 0 ]; then
-        echo "⚠️ Standard build failed, trying with updated maven compiler plugin..."
         mvn clean package -DskipTests \
             -Dmaven.compiler.plugin.version=3.12.1 \
             -Dmaven.compiler.source=23 \
@@ -276,102 +146,51 @@ steps:
             -Dmaven.compiler.release=23
       fi
       
-      echo "📦 Build completed, checking results:"
-      ls -la target/
-      
-      # Verificaciones
       if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
-        echo "❌ TaskService JAR file not found!"
-        echo "Available files in target/:"
-        ls -la target/ || echo "No target directory"
+        echo "❌ JAR file not found!"
         exit 1
-      fi
-      
-      JAR_SIZE=$(stat -c%s "target/TaskService-0.0.1-SNAPSHOT.jar" 2>/dev/null || stat -f%z "target/TaskService-0.0.1-SNAPSHOT.jar")
-      echo "📦 JAR size: $JAR_SIZE bytes"
-      
-      if [ "$JAR_SIZE" -lt 1000000 ]; then
-        echo "⚠️ JAR seems small for a Spring Boot app"
       fi
       
       echo "✅ Maven build successful!"
 
   - type: Command
-    name: "Prepare Docker build with DEBUG"
+    name: "Prepare Docker build"
     timeoutInSeconds: 120
     command: |
-      # Crear estructura de build
       mkdir -p build build/wallet
       
-      echo "Copying JAR to build directory..."
       cp target/TaskService-0.0.1-SNAPSHOT.jar build/
-      
-      echo "Copying wallet with verification..."
       cp -r wallet/* build/wallet/ 2>/dev/null || true
       
-      echo "🔍 Verifying copied wallet files:"
-      ls -la build/wallet/
-      
-      echo "🔍 Comparing original vs copied sizes:"
-      for file in wallet/*; do
-        if [ -f "$file" ]; then
-          local orig_size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
-          local copy_size=$(stat -c%s "build/$file" 2>/dev/null || stat -f%z "build/$file")
-          echo "🔍   $(basename $file): $orig_size -> $copy_size bytes"
-          if [ "$orig_size" -ne "$copy_size" ]; then
-            echo "❌   SIZE MISMATCH for $(basename $file)!"
-          fi
-        fi
-      done
-      
-      echo "Creating Dockerfile (EXACTLY like GitHub Actions)..."
+      echo "Creating Dockerfile..."
       cat > Dockerfile << 'EOF'
       FROM eclipse-temurin:23-jre
       
-      # Mostrar versión de Java para verificar
-      RUN java -version
-      
-      # Establecer directorio de trabajo
       WORKDIR /app
       
-      # Crear directorios
       RUN mkdir -p /wallet
       
-      # Copiar JAR y wallet
       COPY build/TaskService-0.0.1-SNAPSHOT.jar /app/app.jar
       COPY build/wallet/ /wallet/
       
-      # Verificar archivos copiados
-      RUN echo "===== Contenido de /app ====="
-      RUN ls -la /app/
-      
-      RUN echo "===== Contenido de /wallet ====="
-      RUN ls -la /wallet/
-      
-      # Establecer permisos explícitos
       RUN chmod 755 /app/app.jar
       
-      # Configurar variables de entorno
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
       
-      # Puerto de la aplicación
       EXPOSE 8081
       
-      # Comando de inicio con logging detallado
       ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/app.jar"]
       EOF
       
       echo "✅ Docker build context prepared"
-      echo "📋 Build directory contents:"
       ls -la build/
 
   - type: Command
     name: "Build Docker image"
     timeoutInSeconds: 900
     command: |
-      # Generar versión única
       VERSION="$(date +'%Y%m%d-%H%M%S')"
       if [ -d ".git" ]; then
         COMMIT_SHORT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -388,20 +207,11 @@ steps:
         exit 1
       fi
       
-      echo "✅ Docker image built successfully!"
-      
-      # Exportar variables
       export IMAGE_FULL_NAME="${IMAGE_TAG}"
       export VERSION="${VERSION}"
       
-      echo "🎯 IMAGE_FULL_NAME=${IMAGE_FULL_NAME}"
-      echo "🎯 VERSION=${VERSION}"
-      
-      echo "============================================"
       echo "✅ TASKSERVICE BUILD COMPLETED!"
       echo "📦 Image: ${IMAGE_FULL_NAME}"
-      echo "🚀 Ready for deliver-image stage"
-      echo "============================================"
 
 outputArtifacts:
   - name: task-service-image
