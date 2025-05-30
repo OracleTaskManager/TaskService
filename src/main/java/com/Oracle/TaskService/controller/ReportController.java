@@ -119,6 +119,8 @@ public class ReportController {
     @GetMapping("/tasks/completed/sprints/users")
     @PreAuthorize("hasRole('Manager')")
     public ResponseEntity<List<UserTasksCompletedReport>> getTasksCompletedPerAllSprintsAndAllUsers() {
+        System.out.println("Hola yo soy Mateo");
+
         return ResponseEntity.ok(reportService.getTasksCompletedPerAllSprintsAndAllUsers());
     }
 }
