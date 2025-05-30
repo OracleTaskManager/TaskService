@@ -186,7 +186,7 @@ public class TaskController {
 
       HttpEntity<?> entity = new HttpEntity<>(headers);
 
-      System.out.println("Hola yo soy Mateo");
+      System.out.println("Testing for the demo video for the sprint4");
       ResponseEntity<String> response = restTemplate.exchange(
           url, HttpMethod.DELETE, entity, String.class);
 

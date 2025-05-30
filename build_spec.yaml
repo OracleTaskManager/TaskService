@@ -129,31 +129,31 @@ steps:
     name: "Setup Java and Build with Maven"
     timeoutInSeconds: 900
     command: |
-      echo "🔧 Installing Eclipse Temurin 23..."
+      echo "🔧 Installing Amazon Corretto 23..."
       
       cd /opt
       
-      # Descargar Eclipse Temurin 23
-      wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.1%2B11/OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
+      # Descargar Amazon Corretto 23
+      wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
       
-      if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz" ]; then
-        tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
-        JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
+      if [ -f "amazon-corretto-23-x64-linux-jdk.tar.gz" ]; then
+        tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
+        JAVA_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-23*" -type d | head -1)
         export JAVA_HOME="$JAVA_DIR"
         export PATH="$JAVA_HOME/bin:$PATH"
-        echo "✅ Eclipse Temurin 23 installed: $JAVA_DIR"
+        echo "✅ Amazon Corretto 23 installed: $JAVA_DIR"
       else
-        echo "❌ Download failed, trying Amazon Corretto 23..."
+        echo "❌ Corretto 23 download failed, trying Eclipse Temurin 23..."
       
-        wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
-        if [ -f "amazon-corretto-23-x64-linux-jdk.tar.gz" ]; then
-          tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
-          JAVA_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-23*" -type d | head -1)
+        wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.1%2B11/OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
+        if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz" ]; then
+          tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
+          JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
           export JAVA_HOME="$JAVA_DIR"
           export PATH="$JAVA_HOME/bin:$PATH"
-          echo "✅ Amazon Corretto 23 installed: $JAVA_DIR"
+          echo "✅ Eclipse Temurin 23 installed: $JAVA_DIR"
         else
-          echo "❌ All Java downloads failed"
+          echo "❌ All Java 23 downloads failed"
           exit 1
         fi
       fi
@@ -194,7 +194,8 @@ steps:
       
       echo "Creating Dockerfile with wallet-only configuration..."
       cat > Dockerfile << 'EOF'
-      FROM eclipse-temurin:23-jre
+      # Usar Amazon Corretto 23 para evitar rate limits de Docker Hub
+      FROM amazoncorretto:23
       
       # Mostrar versión de Java para verificar
       RUN java -version
