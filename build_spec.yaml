@@ -107,37 +107,42 @@ steps:
     name: "Setup Java and Build with Maven"
     timeoutInSeconds: 900
     command: |
-      echo "🔧 Setting up Java for build..."
+      echo "🔧 Installing Amazon Corretto 21 (fast and reliable)..."
       
-      # Intentar usar Java disponible en el sistema
-      if command -v java21 >/dev/null 2>&1; then
-        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
-        export PATH=$JAVA_HOME/bin:$PATH
-        echo "✅ Using Java 21 (compatible with Java 23 code)"
-      elif command -v java17 >/dev/null 2>&1; then
-        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
-        export PATH=$JAVA_HOME/bin:$PATH
-        echo "✅ Using Java 17 (will compile as Java 21)"
+      # Amazon Corretto 21 - compatible con Oracle Linux
+      cd /opt
+      wget -q https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz
+      
+      if [ -f "amazon-corretto-21-x64-linux-jdk.tar.gz" ]; then
+        tar -xzf amazon-corretto-21-x64-linux-jdk.tar.gz
+        JAVA_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-21*" -type d | head -1)
+        export JAVA_HOME="$JAVA_DIR"
+        export PATH="$JAVA_HOME/bin:$PATH"
+        echo "✅ Amazon Corretto 21 installed: $JAVA_DIR"
       else
-        echo "🔧 Installing Java 21 (stable alternative to Java 23)..."
-        yum install -y java-21-openjdk-devel || dnf install -y java-21-openjdk-devel || apt-get install -y openjdk-21-jdk
-        export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+        echo "❌ Download failed, using system Java..."
+        export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk
         export PATH=$JAVA_HOME/bin:$PATH
       fi
       
       echo "☕ Java version:"
       java -version
       
+      cd $OCI_PRIMARY_SOURCE_DIR
+      
       echo "🚀 Building with Maven..."
       mvn clean package -DskipTests \
-          -Dmaven.compiler.source=21 \
-          -Dmaven.compiler.target=21 \
-          -Dmaven.compiler.release=21
+          -Dmaven.compiler.source=11 \
+          -Dmaven.compiler.target=11
       
       if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
         echo "❌ JAR file not found!"
+        ls -la target/ || echo "No target directory"
         exit 1
       fi
+      
+      JAR_SIZE=$(stat -c%s "target/TaskService-0.0.1-SNAPSHOT.jar")
+      echo "📦 JAR size: $JAR_SIZE bytes"
       
       echo "✅ Maven build successful!"
 
