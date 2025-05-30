@@ -164,7 +164,7 @@ steps:
       
       echo "Creating Dockerfile..."
       cat > Dockerfile << 'EOF'
-      FROM eclipse-temurin:23-jre
+      FROM openjdk:23-jre-slim
       
       WORKDIR /app
       
