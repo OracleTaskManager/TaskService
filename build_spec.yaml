@@ -95,19 +95,33 @@ steps:
         echo "🔍 Final file permissions: $(ls -la "$output_file")"
       }
       
-      # Obtener todos los archivos del wallet con debugging
       echo ""
       echo "🔍 Starting wallet file retrieval..."
       
       get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso"
-      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora"
+      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora"  
       get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora"
-      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12"
-      get_secret "$WALLET_KEYSTORE_JKS_OCID" "wallet/keystore.jks"
+      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12"  
       get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties"
       get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem"
       get_secret "$WALLET_README_OCID" "wallet/README"
-      get_secret "$WALLET_TRUSTSTORE_JKS_OCID" "wallet/truststore.jks"
+      
+      # SKIP JKS files - GitHub Actions doesn't need them
+      echo "⚠️ SKIPPING keystore.jks and truststore.jks (not used in GitHub Actions)"
+      
+      # NO TOCAR archivos de configuración - exactamente como GitHub Actions
+      
+      # NO TOCAR ojdbc.properties - usar exactamente como viene del Vault (igual que GitHub Actions)
+      echo "✅ Using ojdbc.properties as-is from Vault (same as GitHub Actions)"
+      echo "📄 Current ojdbc.properties content:"
+      cat wallet/ojdbc.properties
+      
+      # NO TOCAR sqlnet.ora - usar exactamente como viene del Vault (igual que GitHub Actions)  
+      echo "✅ Using sqlnet.ora as-is from Vault (same as GitHub Actions)"
+      echo "📄 Current sqlnet.ora content:"
+      cat wallet/sqlnet.ora
+      
+      echo "✅ Wallet configuration optimized"
       
       # Configurar permisos
       chmod 600 wallet/* 2>/dev/null || true
@@ -158,15 +172,29 @@ steps:
         # Hacer una copia de respaldo
         cp src/main/resources/application.properties src/main/resources/application.properties.backup
       
-        # Aplicar cambio para TNS_ADMIN (exactamente como GitHub Actions)
+        # Aplicar cambio para TNS_ADMIN Y configurar sqlnet.ora
         sed -i 's|TNS_ADMIN=C:/Users/cesar/Wallet_TelegramBotDatabase|TNS_ADMIN=/wallet|g' src/main/resources/application.properties
       
+        # Arreglar sqlnet.ora para evitar keystores corruptos
+        if [ -f "wallet/sqlnet.ora" ]; then
+          echo "🔧 Fixing sqlnet.ora to avoid corrupted keystores..."
+          cat > wallet/sqlnet.ora << 'SQLNET_EOF'
+      WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
+      SSL_SERVER_DN_MATCH=no
+      SSL_CLIENT_AUTHENTICATION=false
+      SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
+      NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
+      SQLNET_EOF
+      echo "✅ sqlnet.ora updated to use wallet-only authentication"
+      cat wallet/sqlnet.ora
+      fi
+  
         echo "✅ application.properties modified successfully"
         echo "📄 New content:"
         cat src/main/resources/application.properties
-      else
+        else
         echo "⚠️ application.properties not found, skipping modification"
-      fi
+        fi
 
   - type: Command
     name: "Install Java 23 and Build with Maven"
