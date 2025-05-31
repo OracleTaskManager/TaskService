@@ -382,17 +382,7 @@ steps:
       
       echo "🧹 Cleaning up test container..."
       docker rm -f test-container || echo "Error removing container"
-      
-      echo "📤 Pushing image to registry..."
-      docker push "${IMAGE_TAG}"
-      
-      if [ $? -eq 0 ]; then
-        echo "✅ SUCCESS: TaskService image pushed successfully!"
-      else
-        echo "❌ Failed to push image"
-        exit 1
-      fi
-      
+            
       # Exportar variables
       export IMAGE_FULL_NAME="${IMAGE_TAG}"
       export VERSION="${VERSION}"
