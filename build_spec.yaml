@@ -16,61 +16,137 @@ env:
 
 steps:
   - type: Command
-    name: "Recreate wallet files from secrets"
+    name: "Install Oracle Java 23"
+    timeoutInSeconds: 600
+    command: |
+      echo "🔧 Installing Oracle Java 23..."
+      
+      cd /opt
+      
+      # Descargar Oracle JDK 23 desde Oracle
+      # Nota: Usar la URL específica de Oracle para JDK 23
+      wget -q --no-check-certificate https://download.oracle.com/java/23/latest/jdk-23_linux-x64_bin.tar.gz -O oracle-jdk-23.tar.gz
+      
+      if [ -f "oracle-jdk-23.tar.gz" ]; then
+        echo "✅ Oracle JDK 23 downloaded successfully"
+        tar -xzf oracle-jdk-23.tar.gz
+        JAVA23_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
+        if [ ! -z "$JAVA23_DIR" ]; then
+          ln -sf "$JAVA23_DIR" /opt/java23
+          echo "✅ Oracle Java 23 installed: $JAVA23_DIR"
+        else
+          echo "⚠️ Oracle JDK extraction failed, trying alternative..."
+          # Fallback a Amazon Corretto 23
+          wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
+          tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
+          JAVA23_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-23*" -type d | head -1)
+          ln -sf "$JAVA23_DIR" /opt/java23
+          echo "✅ Amazon Corretto 23 installed as fallback: $JAVA23_DIR"
+        fi
+      else
+        echo "❌ Oracle JDK download failed, using Amazon Corretto 23..."
+        wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
+        tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
+        JAVA23_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-23*" -type d | head -1)
+        ln -sf "$JAVA23_DIR" /opt/java23
+        echo "✅ Amazon Corretto 23 installed: $JAVA23_DIR"
+      fi
+      
+      echo "✅ Java 23 installation completed"
+
+  - type: Command
+    name: "Recreate wallet files with correct secret handling"
     timeoutInSeconds: 300
     command: |
-      echo "📁 Creating wallet files from secrets..."
+      echo "🔐 Recreating wallet files with CORRECT secret type handling..."
       
       # Crear directorios
       mkdir -p wallet
       
-      # Función para obtener secrets
-      get_secret() {
+      # Función para archivos guardados como TEXTO PLANO en vault
+      get_plaintext_secret() {
         local secret_id=$1
         local output_file=$2
       
-        echo "Getting secret for: $(basename $output_file)"
+        echo "📄 Getting PLAINTEXT secret for: $(basename $output_file)"
       
         local content=$(oci secrets secret-bundle get --secret-id "$secret_id" --stage LATEST --query 'data."secret-bundle-content".content' --raw-output 2>/dev/null)
         if [ $? -ne 0 ] || [ -z "$content" ]; then
-          echo "WARNING: Failed to get secret $secret_id, creating empty file"
-          touch "$output_file"
+          echo "❌ Failed to get secret $secret_id"
           return 1
         fi
       
-        if echo "$content" | base64 -d > "$output_file" 2>/dev/null; then
-          echo "✅ Secret decoded for $(basename $output_file)"
-        else
-          echo "$content" > "$output_file"
-          echo "✅ Secret saved for $(basename $output_file)"
-        fi
+        # UNA sola decodificación base64 (Oracle Vault auto-encode)
+        echo "$content" | base64 -d > "$output_file"
+      
+        local file_size=$(wc -c < "$output_file")
+        echo "📏 Plaintext file size: $file_size bytes"
+        return 0
       }
       
-      # Obtener SOLO archivos esenciales del wallet (SIN JKS)
-      get_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
-      get_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
-      get_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
-      get_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12" || true
-      get_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
-      get_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
-      get_secret "$WALLET_README_OCID" "wallet/README" || true
+      # Función para archivos guardados como BASE64 en vault
+      get_base64_secret() {
+        local secret_id=$1
+        local output_file=$2
+      
+        echo "🔢 Getting BASE64 secret for: $(basename $output_file)"
+      
+        local content=$(oci secrets secret-bundle get --secret-id "$secret_id" --stage LATEST --query 'data."secret-bundle-content".content' --raw-output 2>/dev/null)
+        if [ $? -ne 0 ] || [ -z "$content" ]; then
+          echo "❌ Failed to get secret $secret_id"
+          return 1
+        fi
+      
+        # DOBLE decodificación: Oracle Vault auto-encode + tu base64 original
+        local decoded_vault=$(echo "$content" | base64 -d 2>/dev/null)
+        if [ $? -ne 0 ]; then
+          echo "❌ Failed vault base64 decode"
+          return 1
+        fi
+      
+        echo "$decoded_vault" | base64 -d > "$output_file"
+        if [ $? -ne 0 ]; then
+          echo "⚠️ Second decode failed, using single decode"
+          echo "$decoded_vault" > "$output_file"
+        fi
+      
+        local file_size=$(wc -c < "$output_file")
+        echo "📏 Base64 file size: $file_size bytes"
+      
+        # Verificación específica para archivos críticos
+        if [[ "$output_file" == *"cwallet.sso" ]]; then
+          if [ "$file_size" -gt 1000 ]; then
+            echo "✅ cwallet.sso size looks good"
+          else
+            echo "⚠️ cwallet.sso seems small"
+          fi
+        fi
+      
+        return 0
+      }
+      
+      echo "📋 Processing secrets with correct type handling..."
+      
+      # ARCHIVOS GUARDADOS COMO TEXTO PLANO EN VAULT (single decode)
+      echo "📄 Processing PLAINTEXT files..."
+      get_plaintext_secret "$WALLET_TNSNAMES_ORA_OCID" "wallet/tnsnames.ora" || true
+      get_plaintext_secret "$WALLET_SQLNET_ORA_OCID" "wallet/sqlnet.ora" || true
+      get_plaintext_secret "$WALLET_OJDBC_PROPERTIES_OCID" "wallet/ojdbc.properties" || true
+      get_plaintext_secret "$WALLET_EWALLET_PEM_OCID" "wallet/ewallet.pem" || true
+      
+      # README si existe (plaintext)
+      if [ ! -z "$WALLET_README_OCID" ]; then
+        get_plaintext_secret "$WALLET_README_OCID" "wallet/README" || true
+      fi
+      
+      # ARCHIVOS GUARDADOS COMO BASE64 EN VAULT (double decode)
+      echo "🔢 Processing BASE64 files..."
+      get_base64_secret "$WALLET_CWALLET_SSO_OCID" "wallet/cwallet.sso" || true
+      get_base64_secret "$WALLET_EWALLET_P12_OCID" "wallet/ewallet.p12" || true
       
       echo "⚠️ EXPLICITLY SKIPPING keystore.jks and truststore.jks to avoid SSL errors"
       
-      # Crear ojdbc.properties optimizado para WALLET-ONLY
-      echo "✅ Creating WALLET-ONLY ojdbc.properties"
-      cat > wallet/ojdbc.properties << 'EOF'
-      # Oracle Wallet connection - NO JKS FILES
-      oracle.net.wallet_location=(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=${TNS_ADMIN})))
-      oracle.net.ssl_client_authentication=false
-      oracle.net.ssl_server_dn_match=false
-      oracle.net.authentication_services=(TCPS,NTS)
-      # Disable JKS lookups
-      oracle.net.ssl_keystore_type=NONE
-      oracle.net.ssl_truststore_type=NONE
-      EOF
-      
-      # Crear sqlnet.ora optimizado para WALLET-ONLY
+      # Crear sqlnet.ora optimizado para WALLET-ONLY (sobrescribir el del vault)
       echo "✅ Creating WALLET-ONLY sqlnet.ora"
       cat > wallet/sqlnet.ora << 'EOF'
       WALLET_LOCATION = (SOURCE = (METHOD = file) (METHOD_DATA = (DIRECTORY="/wallet")))
@@ -79,7 +155,6 @@ steps:
       NAMES.DIRECTORY_PATH=(TNSNAMES,EZCONNECT)
       SQLNET.AUTHENTICATION_SERVICES=(TCPS,NTS)
       SQLNET.WALLET_OVERRIDE=TRUE
-      # Force wallet-only mode
       SSL_CLIENT_AUTHENTICATION=FALSE
       SQLNET.SSL_VERSION=1.2
       EOF
@@ -93,17 +168,32 @@ steps:
       # Configurar permisos
       chmod 600 wallet/* 2>/dev/null || true
       
-      echo "📋 Final wallet files (NO JKS):"
+      echo "✅ Wallet files recreated with correct secret handling!"
+      
+      echo "📋 Final wallet contents (NO JKS):"
       ls -la wallet/
       
-      # Verificar contenido de archivos críticos
-      echo "🔍 Verifying wallet files integrity:"
+      # Verificaciones específicas
+      echo "🔍 Verification checks:"
+      
+      # Verificar archivos de texto
+      if [ -f "wallet/tnsnames.ora" ]; then
+        echo "✅ tnsnames.ora: $(wc -c < wallet/tnsnames.ora) bytes"
+        echo "   📄 First line: $(head -1 wallet/tnsnames.ora)"
+      fi
+      
+      if [ -f "wallet/sqlnet.ora" ]; then
+        echo "✅ sqlnet.ora: $(wc -c < wallet/sqlnet.ora) bytes"
+        echo "   📄 Content preview: $(head -2 wallet/sqlnet.ora)"
+      fi
+      
+      # Verificar archivos binarios críticos
       for file in wallet/cwallet.sso wallet/ewallet.p12; do
         if [ -f "$file" ]; then
-          size=$(stat -c%s "$file")
-          echo "  $file: $size bytes"
+          size=$(wc -c < "$file")
+          echo "✅ $(basename $file): $size bytes"
           if [ $size -eq 0 ]; then
-            echo "    ⚠️ WARNING: $file is empty!"
+            echo "    ⚠️ WARNING: $(basename $file) is empty!"
           fi
         fi
       done
@@ -112,90 +202,88 @@ steps:
     name: "Modify application.properties"
     timeoutInSeconds: 60
     command: |
-      if [ -f "src/main/resources/application.properties" ]; then
-        echo "🔧 Modifying application.properties..."
+      echo "🔧 Modifying application.properties..."
       
+      if [ -f "src/main/resources/application.properties" ]; then
+        # Backup original
         cp src/main/resources/application.properties src/main/resources/application.properties.backup
       
+        # Mismo cambio que GitHub Actions
         sed -i 's|TNS_ADMIN=C:/Users/cesar/Wallet_TelegramBotDatabase|TNS_ADMIN=/wallet|g' src/main/resources/application.properties
       
         echo "✅ application.properties modified successfully"
+        echo "📋 Modified application.properties:"
         cat src/main/resources/application.properties
       else
         echo "⚠️ application.properties not found, skipping modification"
       fi
 
   - type: Command
-    name: "Setup Java and Build with Maven"
+    name: "Build with Maven using Java 23"
     timeoutInSeconds: 900
     command: |
-      echo "🔧 Installing Amazon Corretto 23..."
+      # Configurar Java 23
+      export JAVA_HOME=/opt/java23
+      export PATH=$JAVA_HOME/bin:$PATH
       
-      cd /opt
-      
-      # Descargar Amazon Corretto 23
-      wget -q https://corretto.aws/downloads/latest/amazon-corretto-23-x64-linux-jdk.tar.gz
-      
-      if [ -f "amazon-corretto-23-x64-linux-jdk.tar.gz" ]; then
-        tar -xzf amazon-corretto-23-x64-linux-jdk.tar.gz
-        JAVA_DIR=$(find /opt -maxdepth 1 -name "amazon-corretto-23*" -type d | head -1)
-        export JAVA_HOME="$JAVA_DIR"
-        export PATH="$JAVA_HOME/bin:$PATH"
-        echo "✅ Amazon Corretto 23 installed: $JAVA_DIR"
-      else
-        echo "❌ Corretto 23 download failed, trying Eclipse Temurin 23..."
-      
-        wget -q https://github.com/adoptium/temurin23-binaries/releases/download/jdk-23.0.1%2B11/OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
-        if [ -f "OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz" ]; then
-          tar -xzf OpenJDK23U-jdk_x64_linux_hotspot_23.0.1_11.tar.gz
-          JAVA_DIR=$(find /opt -maxdepth 1 -name "jdk-23*" -type d | head -1)
-          export JAVA_HOME="$JAVA_DIR"
-          export PATH="$JAVA_HOME/bin:$PATH"
-          echo "✅ Eclipse Temurin 23 installed: $JAVA_DIR"
-        else
-          echo "❌ All Java 23 downloads failed"
-          exit 1
-        fi
-      fi
-      
-      echo "☕ Java version:"
+      echo "☕ Verifying Java 23 installation:"
       java -version
+      javac -version
+      echo "🔧 JAVA_HOME: $JAVA_HOME"
       
-      cd $OCI_PRIMARY_SOURCE_DIR
+      echo "📋 Maven version:"
+      mvn -version
       
       echo "🚀 Building with Maven (Java 23)..."
+      
+      # Build con Java 23
       mvn clean package -DskipTests \
           -Dmaven.compiler.source=23 \
           -Dmaven.compiler.target=23 \
           -Dmaven.compiler.release=23
       
+      echo "📦 Build completed, checking results:"
+      ls -la target/
+      
+      # Verificar que el JAR se generó
       if [ ! -f "target/TaskService-0.0.1-SNAPSHOT.jar" ]; then
-        echo "❌ JAR file not found!"
-        echo "Target directory contents:"
-        ls -la target/ || echo "No target directory"
-        echo "Checking for alternative JAR names:"
-        find target/ -name "*.jar" 2>/dev/null || echo "No JAR files found"
+        echo "❌ Expected JAR file not found!"
+        echo "📋 Searching for alternative JAR names:"
+        find target/ -name "*.jar" 2>/dev/null || echo "No JAR files found in target/"
         exit 1
       fi
       
-      JAR_SIZE=$(stat -c%s "target/TaskService-0.0.1-SNAPSHOT.jar")
+      JAR_SIZE=$(stat -c%s "target/TaskService-0.0.1-SNAPSHOT.jar" 2>/dev/null || stat -f%z "target/TaskService-0.0.1-SNAPSHOT.jar")
       echo "📦 JAR size: $JAR_SIZE bytes"
       
-      echo "✅ Maven build successful!"
+      if [ "$JAR_SIZE" -lt 1000000 ]; then  # Menos de 1MB es sospechoso
+        echo "⚠️ JAR seems small for a Spring Boot app"
+      fi
+      
+      echo "✅ Maven build successful with Java 23!"
 
   - type: Command
     name: "Prepare Docker build"
     timeoutInSeconds: 120
     command: |
+      echo "📦 Preparing Docker build context..."
+      
       mkdir -p build build/wallet
       
+      echo "Copying JAR to build directory..."
       cp target/TaskService-0.0.1-SNAPSHOT.jar build/
+      
+      echo "Copying wallet files..."
       cp -r wallet/* build/wallet/ 2>/dev/null || true
       
-      echo "Creating Dockerfile with wallet-only configuration..."
+      echo "Build directory contents:"
+      ls -la build/
+      echo "Build wallet contents:"
+      ls -la build/wallet/
+      
+      echo "Creating Dockerfile with Oracle JRE and wallet-only configuration..."
       cat > Dockerfile << 'EOF'
-      # Usar Amazon Corretto 23 para evitar rate limits de Docker Hub
-      FROM amazoncorretto:23
+      FROM container-registry.oracle.com/graalvm/jdk:23
       
       # Mostrar versión de Java para verificar
       RUN java -version
@@ -231,7 +319,6 @@ steps:
       ENV TNS_ADMIN=/wallet
       ENV ORACLE_HOME=/wallet
       ENV LD_LIBRARY_PATH=/wallet
-      # Forzar uso de wallet solamente
       ENV ORACLE_NET_WALLET_LOCATION=/wallet
       
       # Puerto de la aplicación
@@ -246,13 +333,13 @@ steps:
         "-jar", "/app/app.jar"]
       EOF
       
-      echo "✅ Docker build context prepared (WALLET-ONLY)"
-      ls -la build/
+      echo "✅ Docker build context prepared (WALLET-ONLY with Oracle Java 23)"
 
   - type: Command
-    name: "Build Docker image"
+    name: "Build and Push Docker image"
     timeoutInSeconds: 900
     command: |
+      # Generar versión
       VERSION="$(date +'%Y%m%d-%H%M%S')"
       if [ -d ".git" ]; then
         COMMIT_SHORT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -260,31 +347,60 @@ steps:
       fi
       
       IMAGE_TAG="${REGISTRY}/${NAMESPACE}/${REPOSITORY}/${IMAGE_NAME}:${VERSION}"
+      
       echo "🐳 Building Docker image: ${IMAGE_TAG}"
       
+      # Obtener auth token
+      AUTH_TOKEN=$(oci secrets secret-bundle get --secret-id "$AUTH_TOKEN_OCID" --stage LATEST --query 'data."secret-bundle-content".content' --raw-output 2>/dev/null)
+      DECODED_TOKEN=$(echo "$AUTH_TOKEN" | base64 -d 2>/dev/null)
+      if [ $? -eq 0 ] && [ ! -z "$DECODED_TOKEN" ]; then
+        AUTH_TOKEN="$DECODED_TOKEN"
+      fi
+      
+      DOCKER_USERNAME="${NAMESPACE}/a01281202@tec.mx"
+      
+      echo "🔐 Logging into Oracle Container Registry..."
+      echo "${AUTH_TOKEN}" | docker login ${REGISTRY} -u "${DOCKER_USERNAME}" --password-stdin
+      
+      echo "🚀 Building Docker image (no-cache)..."
       docker build --no-cache -t "${IMAGE_TAG}" .
       
       if [ $? -ne 0 ]; then
-        echo "❌ Docker build failed"
+        echo "❌ Docker build failed!"
         exit 1
       fi
       
-      # Probar la imagen localmente
+      echo "✅ Docker image built successfully!"
+      
+      # Test opcional de la imagen
       echo "🧪 Testing image locally..."
       docker run --name test-container -d "${IMAGE_TAG}"
       
-      echo "Logs del contenedor de prueba (primeros 15 segundos):"
+      echo "📋 Container logs (first 15 seconds):"
       sleep 15
-      docker logs test-container || echo "Error al obtener logs"
+      docker logs test-container || echo "Error getting logs"
       
-      echo "Limpiando contenedor de prueba..."
-      docker rm -f test-container || echo "Error al eliminar contenedor"
+      echo "🧹 Cleaning up test container..."
+      docker rm -f test-container || echo "Error removing container"
       
+      echo "📤 Pushing image to registry..."
+      docker push "${IMAGE_TAG}"
+      
+      if [ $? -eq 0 ]; then
+        echo "✅ SUCCESS: TaskService image pushed successfully!"
+      else
+        echo "❌ Failed to push image"
+        exit 1
+      fi
+      
+      # Exportar variables
       export IMAGE_FULL_NAME="${IMAGE_TAG}"
       export VERSION="${VERSION}"
       
-      echo "✅ TASKSERVICE BUILD COMPLETED (WALLET-ONLY)!"
+      echo "============================================"
+      echo "✅ TASKSERVICE BUILD COMPLETED (WALLET-ONLY with Java 23)!"
       echo "📦 Image: ${IMAGE_FULL_NAME}"
+      echo "============================================"
 
 outputArtifacts:
   - name: task-service-image
