@@ -2,6 +2,7 @@ package com.Oracle.TaskService.service;
 
 import com.Oracle.TaskService.data.SprintRegister;
 import com.Oracle.TaskService.data.SprintUpdate;
+import com.Oracle.TaskService.exceptions.SprintNotFoundException;
 import com.Oracle.TaskService.model.Sprint;
 import com.Oracle.TaskService.repository.SprintRepository;
 import java.util.List;
@@ -18,8 +19,9 @@ public class SprintService {
     return sprintRepository.save(sprint);
   }
 
-  public Sprint updateSprint(SprintUpdate sprintUpdate) {
-    Sprint sprint = sprintRepository.findById(sprintUpdate.sprintId()).get();
+  public Sprint updateSprint(SprintUpdate sprintUpdate, Long sprintId) {
+    Sprint sprint = sprintRepository.findById(sprintId)
+            .orElseThrow(() -> new SprintNotFoundException("Sprint not found with ID: " + sprintId));
     if (sprintUpdate.name() != null) {
       sprint.setName(sprintUpdate.name());
     }

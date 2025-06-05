@@ -10,6 +10,7 @@ import com.Oracle.TaskService.service.TaskSprintService;
 import jakarta.validation.Valid;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -92,11 +93,11 @@ public class SprintController {
     }
   }
 
-  @PutMapping("/")
+  @PutMapping("/{sprintId}")
   @PreAuthorize("hasRole('Manager')")
-  public ResponseEntity<?> updateSprint(@RequestBody @Valid SprintUpdate sprintUpdate) {
+  public ResponseEntity<?> updateSprint(@RequestBody @Valid SprintUpdate sprintUpdate, @PathVariable Long sprintId) {
     try {
-      boolean isActive = sprintService.isActive(sprintUpdate.sprintId());
+      boolean isActive = sprintService.isActive(sprintId);
       if (isActive
           && (sprintUpdate.endDate() != null
               || sprintUpdate.startDate() != null
@@ -104,7 +105,7 @@ public class SprintController {
         return ResponseEntity.status(400).body("Cannot modify an active sprint");
       }
       Date currentDate = new Date();
-      Sprint sprint = sprintService.getSprint(sprintUpdate.sprintId());
+      Sprint sprint = sprintService.getSprint(sprintId);
       // Both start and end date are required to be updated
       if (sprintUpdate.startDate() != null && sprintUpdate.endDate() != null) {
         // Start date cannot be in the past or after the end date
@@ -143,7 +144,7 @@ public class SprintController {
         }
       }
 
-      Sprint updatedSprint = sprintService.updateSprint(sprintUpdate);
+      Sprint updatedSprint = sprintService.updateSprint(sprintUpdate, sprintId);
       SprintResponse sprintResponse =
           new SprintResponse(
               updatedSprint.getSprintId(),
