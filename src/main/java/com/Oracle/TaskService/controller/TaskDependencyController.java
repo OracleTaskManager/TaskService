@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/task_dependencies")
+@RequestMapping("/taskdependencies")
 public class TaskDependencyController {
 
   @Autowired private TaskDependencyService taskDependencyService;
@@ -36,14 +36,12 @@ public class TaskDependencyController {
         taskDependencyService.getTaskDependency(taskDependencyId), HttpStatus.OK);
   }
 
-  @PreAuthorize("hasRole('Manager')")
-  @GetMapping("/{task_id}")
+  @GetMapping("/{task_id}/blockedBy")
   public ResponseEntity<?> findByTaskId(@PathVariable("task_id") Task taskId) {
     return new ResponseEntity<>(taskDependencyService.findByTaskId(taskId), HttpStatus.OK);
   }
 
-  @PreAuthorize("hasRole('Manager')")
-  @GetMapping("/{blockedby_task_id}")
+  @GetMapping("/{blockedby_task_id}/isBlocking")
   public ResponseEntity<?> findByBlockedByTaskId(@PathVariable("blockedby_task_id") Task taskId) {
     return new ResponseEntity<>(taskDependencyService.findByBlockedByTaskId(taskId), HttpStatus.OK);
   }
