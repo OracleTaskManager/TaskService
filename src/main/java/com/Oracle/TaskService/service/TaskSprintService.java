@@ -1,10 +1,13 @@
 package com.Oracle.TaskService.service;
 
 import com.Oracle.TaskService.data.TaskSprintRequest;
+import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.model.TaskSprint;
 import com.Oracle.TaskService.repository.TaskSprintRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class TaskSprintService {
@@ -28,4 +31,9 @@ public class TaskSprintService {
   public boolean isTaskInSprint(Long task_id, Long sprint_id) {
     return taskSprintRepository.existsByTaskIdAndSprintId(task_id, sprint_id);
   }
+
+  public List<Task> getTasksBySprint(Long sprintId){
+    return taskSprintRepository.findTasksBySprintId(sprintId);
+  }
+
 }
