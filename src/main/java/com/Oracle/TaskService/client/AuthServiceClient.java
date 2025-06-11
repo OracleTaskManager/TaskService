@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.Map;
 import java.util.List;
 
-@FeignClient(name="auth-service", url ="https://oraclekairo.com/api/auth/", configuration = FeignClientConfig.class)
+@FeignClient(name="auth-service", url ="http://oraclekairo.com/api/auth/", configuration = FeignClientConfig.class)
 public interface AuthServiceClient {
 
     @GetMapping("/users/{userId}")
