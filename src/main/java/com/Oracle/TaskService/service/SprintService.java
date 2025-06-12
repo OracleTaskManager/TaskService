@@ -65,4 +65,11 @@ public class SprintService {
     sprint.setStatus("Active");
     return sprintRepository.save(sprint);
   }
+
+    public Sprint endSprint(Long sprintId) {
+        Sprint sprint = sprintRepository.findById(sprintId).get();
+        sprint.setStatus("Completed");
+        return sprintRepository.save(sprint);
+    }
+
 }

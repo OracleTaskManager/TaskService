@@ -93,6 +93,31 @@ public class SprintController {
     }
   }
 
+    @PostMapping("/{sprintId}/end")
+    @PreAuthorize("hasRole('Manager')")
+    public ResponseEntity<?> endSprint(@PathVariable Long sprintId) {
+      try {
+        Boolean isActive = sprintService.isActive(sprintId);
+        if (!isActive) {
+          return ResponseEntity.status(400).body("Can only end active sprints");
+        }
+
+        Sprint sprint = sprintService.getSprint(sprintId);
+        Date currentDate = new Date();
+
+        if (sprint.getEnd_date().before(currentDate)) {
+          return ResponseEntity.status(400)
+                  .body("Cannot end a sprint with an end date in the past");
+        }
+
+        sprintService.endSprint(sprintId);
+        return ResponseEntity.ok().build();
+      } catch (Exception e) {
+        System.out.println("Error during sprint end: " + e.getMessage());
+        return ResponseEntity.status(500).build();
+      }
+    }
+
   @PutMapping("/{sprintId}")
   @PreAuthorize("hasRole('Manager')")
   public ResponseEntity<?> updateSprint(@RequestBody @Valid SprintUpdate sprintUpdate, @PathVariable Long sprintId) {
