@@ -1,15 +1,12 @@
 package com.Oracle.TaskService.controller;
 
 import com.Oracle.TaskService.data.TaskAssignmentRequest;
-import com.Oracle.TaskService.data.TaskAssignmentResponse;
 import com.Oracle.TaskService.service.TaskAssignmentService;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/taskassignments")

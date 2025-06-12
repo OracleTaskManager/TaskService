@@ -58,7 +58,7 @@ public class TaskService {
     return taskRepository.findByTitle(title);
   }
 
-  public Task updateTaskStatus(Long taskId,TaskUpdateStatus taskUpdateStatus) {
+  public Task updateTaskStatus(Long taskId, TaskUpdateStatus taskUpdateStatus) {
     Task task = taskRepository.findByTaskId(taskId);
     if (taskUpdateStatus.status() != null) {
       task.setStatus(taskUpdateStatus.status().toString());
@@ -105,7 +105,7 @@ public class TaskService {
     return taskRepository.findByStatusAndRealDeadlineBetween(status, startDate, endDate);
   }
 
-  public Task updateTaskById(Long taskId,TaskUpdateContent updateTask) {
+  public Task updateTaskById(Long taskId, TaskUpdateContent updateTask) {
     Task task = taskRepository.findByTaskId(taskId);
 
     if (updateTask.title() != null) {
@@ -141,5 +141,4 @@ public class TaskService {
 
     return taskRepository.save(task);
   }
-
 }

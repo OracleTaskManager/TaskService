@@ -8,8 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
-
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -125,17 +123,18 @@ public class TaskController {
     return new ResponseEntity<>(taskService.findByEstimatedHours(estimatedHours), HttpStatus.OK);
   }
 
-  //implement in service
+  // implement in service
   @PostMapping("/change-status/{task_id}")
-  public ResponseEntity<?> changeStatus(@RequestBody @Valid TaskUpdateStatus taskUpdateStatus, @PathVariable("task_id") Long task_id) {
+  public ResponseEntity<?> changeStatus(
+      @RequestBody @Valid TaskUpdateStatus taskUpdateStatus,
+      @PathVariable("task_id") Long task_id) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     Object principal = authentication.getPrincipal();
     Long userId;
 
     userId = (Long) principal;
     System.out.println("User ID: " + userId);
-    Boolean isTaskAssigned =
-        taskAssignmentService.isTaskAssigned(task_id, userId);
+    Boolean isTaskAssigned = taskAssignmentService.isTaskAssigned(task_id, userId);
 
     if (!isTaskAssigned) {
       return new ResponseEntity<>("Task is not assigned to the user", HttpStatus.FORBIDDEN);
@@ -173,22 +172,23 @@ public class TaskController {
 
   @PreAuthorize("hasRole('Manager')")
   @DeleteMapping("/")
-  public ResponseEntity<?> deleteTask(@RequestParam("task_id") Long task_id, HttpServletRequest request) {
-    try{
+  public ResponseEntity<?> deleteTask(
+      @RequestParam("task_id") Long task_id, HttpServletRequest request) {
+    try {
       String url = "http://oraclekairo.com/api/files/attachments/task/" + task_id;
       RestTemplate restTemplate = new RestTemplate();
 
       HttpHeaders headers = new HttpHeaders();
       String authHeader = request.getHeader("Authorization");
-      if(authHeader != null){
+      if (authHeader != null) {
         headers.set("Authorization", authHeader);
       }
 
       HttpEntity<?> entity = new HttpEntity<>(headers);
 
       System.out.println("Testing for the demo video for the sprint4");
-      ResponseEntity<String> response = restTemplate.exchange(
-          url, HttpMethod.DELETE, entity, String.class);
+      ResponseEntity<String> response =
+          restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
 
       System.out.println("Response from attachment deletion: " + response.getStatusCode());
 
@@ -197,23 +197,23 @@ public class TaskController {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
-
-
       if (taskService.deleteTaskById(task_id)) {
         return new ResponseEntity<>(HttpStatus.OK);
       } else {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
       }
 
-    } catch(Exception e){
+    } catch (Exception e) {
       System.out.println("Error during task deletion: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
   }
 
   @PutMapping("/update-my-task/{task_id}")
   @PreAuthorize("hasRole('Manager')")
-  public ResponseEntity<?> updateTask(@RequestBody @Valid TaskUpdateContent taskUpdateContent, @PathVariable("task_id") Long task_id) {
+  public ResponseEntity<?> updateTask(
+      @RequestBody @Valid TaskUpdateContent taskUpdateContent,
+      @PathVariable("task_id") Long task_id) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     Object principal = authentication.getPrincipal();
     Long userId;
@@ -228,11 +228,11 @@ public class TaskController {
     Task task = taskService.updateTaskById(task_id, taskUpdateContent);
 
     if (task == null) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-              .body("Task not found");
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task not found");
     }
 
-    TaskResponse response = new TaskResponse(
+    TaskResponse response =
+        new TaskResponse(
             task.getTaskId(),
             task.getTitle(),
             task.getDescription(),
@@ -244,23 +244,24 @@ public class TaskController {
             task.getRealDeadline(),
             task.getUser_points(),
             task.getRealHours(),
-            task.getEstimatedHours()
-    );
+            task.getEstimatedHours());
 
     return ResponseEntity.ok(response);
   }
 
   @PreAuthorize("hasRole('Manager')")
   @PutMapping("/update-task/{task_id}")
-  public ResponseEntity<?> updateTaskContent(@RequestBody @Valid TaskUpdateContent taskUpdateContent, @PathVariable("task_id") Long task_id) {
+  public ResponseEntity<?> updateTaskContent(
+      @RequestBody @Valid TaskUpdateContent taskUpdateContent,
+      @PathVariable("task_id") Long task_id) {
     Task task = taskService.updateTaskById(task_id, taskUpdateContent);
 
     if (task == null) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-              .body("Task not found");
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task not found");
     }
 
-    TaskResponse response = new TaskResponse(
+    TaskResponse response =
+        new TaskResponse(
             task.getTaskId(),
             task.getTitle(),
             task.getDescription(),
@@ -272,8 +273,7 @@ public class TaskController {
             task.getRealDeadline(),
             task.getUser_points(),
             task.getRealHours(),
-            task.getEstimatedHours()
-    );
+            task.getEstimatedHours());
 
     return ResponseEntity.ok(response);
   }
