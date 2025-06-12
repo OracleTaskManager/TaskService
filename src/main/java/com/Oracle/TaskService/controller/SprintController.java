@@ -10,7 +10,6 @@ import com.Oracle.TaskService.service.TaskSprintService;
 import jakarta.validation.Valid;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -95,54 +94,58 @@ public class SprintController {
 
   @PutMapping("/{sprintId}")
   @PreAuthorize("hasRole('Manager')")
-  public ResponseEntity<?> updateSprint(@RequestBody @Valid SprintUpdate sprintUpdate, @PathVariable Long sprintId) {
+  public ResponseEntity<?> updateSprint(
+      @RequestBody @Valid SprintUpdate sprintUpdate, @PathVariable Long sprintId) {
     try {
-//      boolean isActive = sprintService.isActive(sprintId);
-//      if (isActive
-//          && (sprintUpdate.endDate() != null
-//              || sprintUpdate.startDate() != null
-//              || sprintUpdate.name() != null)) {
-//        return ResponseEntity.status(400).body("Cannot modify an active sprint");
-//      }
-//      Date currentDate = new Date();
+      //      boolean isActive = sprintService.isActive(sprintId);
+      //      if (isActive
+      //          && (sprintUpdate.endDate() != null
+      //              || sprintUpdate.startDate() != null
+      //              || sprintUpdate.name() != null)) {
+      //        return ResponseEntity.status(400).body("Cannot modify an active sprint");
+      //      }
+      //      Date currentDate = new Date();
       Sprint sprint = sprintService.getSprint(sprintId);
       // Both start and end date are required to be updated
-//      if (sprintUpdate.startDate() != null && sprintUpdate.endDate() != null) {
-//        // Start date cannot be in the past or after the end date
-//        if (sprintUpdate.startDate().before(currentDate)
-//            || sprintUpdate.startDate().after(sprintUpdate.endDate())) {
-//          return ResponseEntity.status(400)
-//              .body("Invalid start date, must be in the future and before the end date");
-//        }
-//        // End date cannot be before the start date or in the past
-//        if (sprintUpdate.endDate().before(sprintUpdate.startDate())
-//            || sprintUpdate.endDate().before(currentDate)) {
-//          return ResponseEntity.status(400)
-//              .body("Invalid end date, must be after the start date and in the future");
-//        }
-//      }
-//      // Only start date is required to be updated
-//      if (sprintUpdate.startDate() != null && sprintUpdate.endDate() == null) {
-//        // Start date cannot be in the past
-//        if (sprintUpdate.startDate().before(currentDate)) {
-//          return ResponseEntity.status(400).body("Invalid start date, must be in the future");
-//        }
-//        // Start date cannot be after the end date
-//        if (sprintUpdate.startDate().after(sprint.getEnd_date())) {
-//          return ResponseEntity.status(400).body("Invalid start date, must be before the end date");
-//        }
-//      }
-//      // Only end date is required to be updated
-//      if (sprintUpdate.startDate() == null && sprintUpdate.endDate() != null) {
-//        // End date cannot be before the start date
-//        if (sprintUpdate.endDate().before(sprint.getStart_date())) {
-//          return ResponseEntity.status(400).body("Invalid end date, must be after the start date");
-//        }
-//        // End date cannot be in the past
-//        if (sprintUpdate.endDate().before(currentDate)) {
-//          return ResponseEntity.status(400).body("Invalid end date, must be in the future");
-//        }
-//      }
+      //      if (sprintUpdate.startDate() != null && sprintUpdate.endDate() != null) {
+      //        // Start date cannot be in the past or after the end date
+      //        if (sprintUpdate.startDate().before(currentDate)
+      //            || sprintUpdate.startDate().after(sprintUpdate.endDate())) {
+      //          return ResponseEntity.status(400)
+      //              .body("Invalid start date, must be in the future and before the end date");
+      //        }
+      //        // End date cannot be before the start date or in the past
+      //        if (sprintUpdate.endDate().before(sprintUpdate.startDate())
+      //            || sprintUpdate.endDate().before(currentDate)) {
+      //          return ResponseEntity.status(400)
+      //              .body("Invalid end date, must be after the start date and in the future");
+      //        }
+      //      }
+      //      // Only start date is required to be updated
+      //      if (sprintUpdate.startDate() != null && sprintUpdate.endDate() == null) {
+      //        // Start date cannot be in the past
+      //        if (sprintUpdate.startDate().before(currentDate)) {
+      //          return ResponseEntity.status(400).body("Invalid start date, must be in the
+      // future");
+      //        }
+      //        // Start date cannot be after the end date
+      //        if (sprintUpdate.startDate().after(sprint.getEnd_date())) {
+      //          return ResponseEntity.status(400).body("Invalid start date, must be before the end
+      // date");
+      //        }
+      //      }
+      //      // Only end date is required to be updated
+      //      if (sprintUpdate.startDate() == null && sprintUpdate.endDate() != null) {
+      //        // End date cannot be before the start date
+      //        if (sprintUpdate.endDate().before(sprint.getStart_date())) {
+      //          return ResponseEntity.status(400).body("Invalid end date, must be after the start
+      // date");
+      //        }
+      //        // End date cannot be in the past
+      //        if (sprintUpdate.endDate().before(currentDate)) {
+      //          return ResponseEntity.status(400).body("Invalid end date, must be in the future");
+      //        }
+      //      }
 
       Sprint updatedSprint = sprintService.updateSprint(sprintUpdate, sprintId);
       SprintResponse sprintResponse =

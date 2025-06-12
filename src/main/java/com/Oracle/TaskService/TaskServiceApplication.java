@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication(scanBasePackages = "com.Oracle.TaskService")
-@EnableFeignClients(basePackages = "com.Oracle.TaskService.client" )
+@EnableFeignClients(basePackages = "com.Oracle.TaskService.client")
 public class TaskServiceApplication {
 
   public static void main(String[] args) {

@@ -4,12 +4,11 @@ import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.model.TaskSprint;
 import com.Oracle.TaskService.model.TaskSprintId;
 import jakarta.transaction.Transactional;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 public interface TaskSprintRepository extends JpaRepository<TaskSprint, TaskSprintId> {
@@ -25,5 +24,4 @@ public interface TaskSprintRepository extends JpaRepository<TaskSprint, TaskSpri
 
   @Query("SELECT t FROM Task t, TaskSprint ts WHERE ts.id.sprint_id = ?1 AND t.id = ts.id.task_id")
   List<Task> findTasksBySprintId(Long sprintId);
-
 }

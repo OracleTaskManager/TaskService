@@ -20,8 +20,11 @@ public class SprintService {
   }
 
   public Sprint updateSprint(SprintUpdate sprintUpdate, Long sprintId) {
-    Sprint sprint = sprintRepository.findById(sprintId)
-            .orElseThrow(() -> new SprintNotFoundException("Sprint not found with ID: " + sprintId));
+    Sprint sprint =
+        sprintRepository
+            .findById(sprintId)
+            .orElseThrow(
+                () -> new SprintNotFoundException("Sprint not found with ID: " + sprintId));
     if (sprintUpdate.name() != null) {
       sprint.setName(sprintUpdate.name());
     }
