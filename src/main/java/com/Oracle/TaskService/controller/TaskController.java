@@ -175,7 +175,7 @@ public class TaskController {
   @DeleteMapping("/")
   public ResponseEntity<?> deleteTask(@RequestParam("task_id") Long task_id, HttpServletRequest request) {
     try{
-      String url = "http://localhost:8082/attachments/task/" + task_id;
+      String url = "http://oraclekairo.com/api/files/attachments/task/" + task_id;
       RestTemplate restTemplate = new RestTemplate();
 
       HttpHeaders headers = new HttpHeaders();
