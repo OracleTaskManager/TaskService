@@ -2,6 +2,7 @@ package com.Oracle.TaskService.service;
 
 import com.Oracle.TaskService.data.TaskAssignmentRequest;
 import com.Oracle.TaskService.data.TaskAssignmentResponse;
+import com.Oracle.TaskService.data.TelegramTaskAssignmentResponse;
 import com.Oracle.TaskService.model.TaskAssignment;
 import com.Oracle.TaskService.repository.TaskAssignmentRepository;
 import java.util.List;
@@ -40,4 +41,13 @@ public class TaskAssignmentService {
                     taskAssignment.getTask_id(), taskAssignment.getUser_id()))
         .toList();
   }
+
+  public List<?> getAllTaskAssignmentsTelegram() {
+    List<TelegramTaskAssignmentResponse> taskAssignments = taskAssignmentRepository.findAllTelegram();
+    if (taskAssignments.isEmpty()) {
+      return List.of(ResponseEntity.notFound().build());
+    }
+    return taskAssignments;
+  }
+
 }

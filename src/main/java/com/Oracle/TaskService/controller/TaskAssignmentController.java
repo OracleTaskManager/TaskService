@@ -33,8 +33,7 @@ public class TaskAssignmentController {
 
   @DeleteMapping("/remove")
   @PreAuthorize("hasRole('Manager')")
-  public void removeTaskAssignment(
-      @RequestBody @Valid TaskAssignmentRequest taskAssignmentRequest) {
+  public void removeTaskAssignment(@RequestBody @Valid TaskAssignmentRequest taskAssignmentRequest) {
     try {
       boolean isAssigned =
           taskAssignmentService.isTaskAssigned(
@@ -46,6 +45,17 @@ public class TaskAssignmentController {
       taskAssignmentService.removeTaskAssignment(taskAssignmentRequest);
     } catch (Exception e) {
       System.out.println("Error during task assignment deletion: " + e.getMessage());
+    }
+  }
+
+  @GetMapping("/all-Telegram")
+  @PreAuthorize("hasRole('Manager')")
+  public List<?> getAllTaskAssignmentsTelegram() {
+    try {
+      return taskAssignmentService.getAllTaskAssignmentsTelegram();
+    } catch (Exception e) {
+      System.out.println("Error during fetching task assignments for Telegram: " + e.getMessage());
+      return null;
     }
   }
 
