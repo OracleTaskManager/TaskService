@@ -8,11 +8,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Date;
 import java.util.List;
+
+import oracle.ucp.proxy.annotation.Pre;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -247,6 +250,19 @@ public class TaskController {
             task.getEstimatedHours());
 
     return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/balance")
+  @PreAuthorize("hasRole('Manager')")
+  public ResponseEntity<?> getFinancialBalance(){
+    Double hourlyRate = 25.0;
+    try{
+      FinancialResponse balance = taskService.calculateFinancialBalance(hourlyRate);
+      return ResponseEntity.ok(balance);
+    }catch (Exception e) {
+      System.out.println("Error during financial balance retrieval: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
   }
 
   @PreAuthorize("hasRole('Manager')")

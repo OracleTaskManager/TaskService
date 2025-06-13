@@ -1,13 +1,12 @@
 package com.Oracle.TaskService.service;
 
-import com.Oracle.TaskService.data.TaskKPIView;
-import com.Oracle.TaskService.data.TaskRegister;
-import com.Oracle.TaskService.data.TaskUpdateContent;
-import com.Oracle.TaskService.data.TaskUpdateStatus;
+import com.Oracle.TaskService.data.*;
 import com.Oracle.TaskService.model.Task;
 import com.Oracle.TaskService.model.TaskAssignment;
 import com.Oracle.TaskService.repository.TaskAssignmentRepository;
 import com.Oracle.TaskService.repository.TaskRepository;
+
+import java.lang.annotation.Documented;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -103,6 +102,22 @@ public class TaskService {
   public List<TaskKPIView> findByStatusAndRealDeadlineBetween(
       String status, Date startDate, Date endDate) {
     return taskRepository.findByStatusAndRealDeadlineBetween(status, startDate, endDate);
+  }
+
+  public FinancialResponse calculateFinancialBalance(Double hourlyRate) {
+    List<Task> tasks = findAll();
+
+    double totalEstimatedCost = tasks.stream()
+            .mapToDouble(task -> (task.getEstimatedHours() != null ? task.getEstimatedHours() : 0) * hourlyRate)
+            .sum();
+
+    double totalRealCost = tasks.stream()
+            .mapToDouble(task -> (task.getRealHours() != null ? task.getRealHours() : 0) * hourlyRate)
+            .sum();
+
+    double balance = totalEstimatedCost - totalRealCost;
+
+    return new FinancialResponse(balance);
   }
 
   public Task updateTaskById(Long taskId, TaskUpdateContent updateTask) {
